@@ -17,6 +17,26 @@ const FILTERS = {
   vhs: 'saturate(1.4) contrast(1.1) hue-rotate(-10deg)',
 };
 
+function drawToBlob(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      try {
+        canvas.toBlob((b) => (b ? resolve(b) : reject()), 'image/jpeg', 0.92);
+      } catch {
+        reject();
+      }
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 export function SnapResult({ snap, onDone, onShare }) {
   const [printed, setPrinted] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -30,30 +50,24 @@ export function SnapResult({ snap, onDone, onShare }) {
 
     try {
       if (navigator.share) {
-        // Try to share the actual image file
-        if (imgUrl) {
-          try {
-            const res = await fetch(imgUrl, { mode: 'cors' });
-            const blob = await res.blob();
-            const file = new File([blob], 'londonselfiecam.jpg', { type: blob.type });
-            if (navigator.canShare?.({ files: [file] })) {
-              await navigator.share({ files: [file], title: 'London Selfie Cam', text });
-              onShare?.();
-              return;
-            }
-          } catch {
-            // CORS blocked or canShare false — fall through
+        // Try to get image blob via canvas (works if TFL S3 sends CORS headers)
+        const blob = imgUrl ? await drawToBlob(imgUrl) : null;
+        if (blob) {
+          const file = new File([blob], 'londonselfiecam.jpg', { type: 'image/jpeg' });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'London Selfie Cam', text });
+            onShare?.();
+            return;
           }
         }
-        // Fall back to text + page URL
-        await navigator.share({ title: 'London Selfie Cam', text, url: window.location.href });
+        // Fall back: share cam image URL directly — shows image preview in WhatsApp/iMessage
+        await navigator.share({ title: 'London Selfie Cam', text, url: imgUrl || window.location.href });
         onShare?.();
       } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(`${text}\n${window.location.href}`);
+        await navigator.clipboard.writeText(`${text}\n${imgUrl || window.location.href}`);
         onShare?.();
       }
     } catch {
-      // User cancelled or API unavailable — just dismiss
       onShare?.();
     } finally {
       setSharing(false);
