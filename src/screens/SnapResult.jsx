@@ -60,19 +60,25 @@ export function SnapResult({ snap, onDone, onShare }) {
     setSharing(true);
     try {
       const blob = blobRef.current;
+      const text = `Spotted on a TFL jam cam 📸 ${snap.cam.displayName.toUpperCase()} · #LondonSelfieCam`;
+
+      // Try file share — skip canShare() check as it false-negatives on many devices
       if (navigator.share && blob) {
-        const file = new File([blob], 'londonselfiecam.jpg', { type: 'image/jpeg' });
-        if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: 'London Selfie Cam' });
+        try {
+          const file = new File([blob], 'londonselfiecam.jpg', { type: 'image/jpeg' });
+          await navigator.share({ files: [file], title: 'London Selfie Cam', text });
           onShare?.();
           return;
+        } catch (e) {
+          if (e.name === 'AbortError') { onShare?.(); return; } // user cancelled
+          // browser doesn't support file sharing — fall through to URL
         }
       }
-      // Fallback: share cam image URL
+
+      // Fallback: share cam image URL (shows image preview in most apps)
       const imgUrl = snap.cam.imageUrl
         ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
         : window.location.href;
-      const text = `Spotted on a TFL jam cam 📸 ${snap.cam.displayName.toUpperCase()} · #LondonSelfieCam`;
       if (navigator.share) {
         await navigator.share({ title: 'London Selfie Cam', text, url: imgUrl });
       } else if (navigator.clipboard) {
