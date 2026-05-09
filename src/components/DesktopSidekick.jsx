@@ -16,14 +16,14 @@ const PROTOCOL_STEPS = [
 export function DesktopSidekick() {
   return (
     <aside className="desktop-sidekick" aria-label="Open on phone">
-      <div className="sidekick-tag">
-        <span className="rec-dot" />
-        DESKTOP USER DETECTED
-      </div>
+      <div className="sidekick-scroll">
+        <div className="sidekick-tag">
+          <span className="rec-dot" />
+          DESKTOP USER DETECTED
+        </div>
 
-      <div className="sidekick-divider" aria-hidden="true" />
+        <div className="sidekick-divider" aria-hidden="true" />
 
-      <div className="sidekick-intro">
         <p className="sidekick-copy">
           Find a TfL cam near you,
           <br />
@@ -31,15 +31,6 @@ export function DesktopSidekick() {
           <br />
           your <strong>London selfie.</strong>
         </p>
-        <div className="sidekick-scroll-cue" aria-hidden="true">
-          <span className="scroll-cue-label">SCROLL</span>
-          <span className="scroll-cue-rail">
-            <span className="scroll-cue-arrow">↓</span>
-            <span className="scroll-cue-arrow">↓</span>
-            <span className="scroll-cue-arrow">↓</span>
-          </span>
-        </div>
-      </div>
 
       <div className="sidekick-example">
         <div className="sidekick-example-steps">
@@ -138,6 +129,16 @@ export function DesktopSidekick() {
         >
           {URL_LABEL}
         </a>
+      </div>
+      </div>
+
+      <div className="sidekick-rail-cue" aria-hidden="true">
+        <span className="rail-cue-label">SCROLL</span>
+        <span className="rail-cue-stack">
+          <span className="rail-cue-arrow">↓</span>
+          <span className="rail-cue-arrow">↓</span>
+          <span className="rail-cue-arrow">↓</span>
+        </span>
       </div>
     </aside>
   );
