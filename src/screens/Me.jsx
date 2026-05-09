@@ -1,7 +1,35 @@
 import { useState, useEffect } from 'react';
-import { CamTile } from '../components/CamTile';
 import { QUESTS, FRIENDS } from '../data/london';
 import { loadSnaps, deleteSnap } from '../lib/snapStorage';
+
+function computeStats(snaps) {
+  const count = snaps.length;
+  const uniqueCams = new Set(snaps.map((s) => s.camId)).size;
+
+  // Streak: consecutive days ending today (or yesterday) with at least one snap
+  const daySet = new Set(
+    snaps.map((s) => new Date(s.time).toLocaleDateString('en-CA')), // YYYY-MM-DD
+  );
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    if (daySet.has(d.toLocaleDateString('en-CA'))) streak++;
+    else if (i > 0) break; // gap found — stop (allow missing today)
+  }
+
+  const xp = count * 120 + uniqueCams * 80;
+  const level = Math.max(1, Math.floor(xp / 1000) + 1);
+
+  // Joined date = earliest snap, or null
+  const times = snaps.map((s) => new Date(s.time)).filter((d) => !isNaN(d));
+  const joined = times.length
+    ? new Date(Math.min(...times)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase()
+    : null;
+
+  return { count, uniqueCams, streak, xp, level, joined };
+}
 
 function Stat({ label, v }) {
   return (
@@ -27,9 +55,11 @@ export function Me({ cams, onOpenCam }) {
   const [tab, setTab] = useState('quests');
   const me = FRIENDS.find((f) => f.you);
   const [snaps, setSnaps] = useState(() => loadSnaps());
+  const stats = computeStats(snaps);
 
   useEffect(() => {
-    if (tab === 'snaps') setSnaps(loadSnaps());
+    const updated = loadSnaps();
+    setSnaps(updated);
   }, [tab]);
 
   return (
@@ -67,7 +97,7 @@ export function Me({ cams, onOpenCam }) {
                 marginTop: 4,
               }}
             >
-              JOINED 02 MAY · LEVEL 03
+              {stats.joined ? `JOINED ${stats.joined} · ` : ''}LEVEL {String(stats.level).padStart(2, '0')}
             </div>
           </div>
           <div
@@ -103,10 +133,10 @@ export function Me({ cams, onOpenCam }) {
             padding: '12px 0',
           }}
         >
-          <Stat label="CAMS" v={me.cams} />
-          <Stat label="SNAPS" v={me.snaps} />
-          <Stat label="STREAK" v={`${me.streak}d`} />
-          <Stat label="XP" v="2,840" />
+          <Stat label="CAMS" v={stats.uniqueCams} />
+          <Stat label="SNAPS" v={stats.count} />
+          <Stat label="STREAK" v={`${stats.streak}d`} />
+          <Stat label="XP" v={stats.xp.toLocaleString()} />
         </div>
       </div>
 
@@ -279,7 +309,7 @@ export function Me({ cams, onOpenCam }) {
               marginBottom: 10,
             }}
           >
-            YOUR ROLL · {snaps.length} FRAMES
+            YOUR ROLL · {stats.count} FRAMES
           </div>
           {snaps.length === 0 ? (
             <div
