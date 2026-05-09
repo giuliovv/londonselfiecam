@@ -9,7 +9,7 @@ function project(lat, lng) {
   return { x: 4 + x * 92, y: 8 + y * 84 };
 }
 
-export function MapView({ cams, onPick, pulsing = false, selected }) {
+export function MapView({ cams, onPick, pulsing = false, selected, userLoc }) {
   return (
     <div
       style={{
@@ -90,7 +90,36 @@ export function MapView({ cams, onPick, pulsing = false, selected }) {
         </g>
       </svg>
 
-      {/* pins */}
+      {/* user location pin */}
+      {userLoc &&
+        userLoc.lat >= BBOX.minLat &&
+        userLoc.lat <= BBOX.maxLat &&
+        userLoc.lon >= BBOX.minLng &&
+        userLoc.lon <= BBOX.maxLng &&
+        (() => {
+          const { x, y } = project(userLoc.lat, userLoc.lon);
+          return (
+            <div
+              key="user"
+              style={{
+                position: 'absolute',
+                left: `${x}%`,
+                top: `${y}%`,
+                transform: 'translate(-50%, -50%)',
+                width: 18,
+                height: 18,
+                borderRadius: '50%',
+                background: '#4fc3f7',
+                border: '2.5px solid #fff',
+                boxShadow: '0 0 0 5px rgba(79,195,247,0.3)',
+                zIndex: 25,
+                pointerEvents: 'none',
+              }}
+            />
+          );
+        })()}
+
+      {/* cam pins */}
       {cams.map((c) => {
         const inBbox =
           c.lat >= BBOX.minLat &&

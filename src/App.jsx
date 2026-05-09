@@ -38,6 +38,11 @@ export default function App() {
     document.documentElement.dataset.theme = tweaks.theme;
   }, [tweaks.theme]);
 
+  // Auto-request geolocation once on mount
+  useEffect(() => {
+    geo.request().catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Splash for ~1.7s, but at least until first cams load
   useEffect(() => {
     const min = 1700;
@@ -126,7 +131,7 @@ export default function App() {
               onPickCam={openCam}
             />
           )}
-          {tab === 'map' && <MapScreen cams={sortedCams} onOpenCam={openCam} />}
+          {tab === 'map' && <MapScreen cams={sortedCams} onOpenCam={openCam} userLoc={geo.location} />}
           {tab === 'feed' && <Feed cams={sortedCams} onOpenCam={openCam} />}
           {tab === 'plan' && (
             <Planner
