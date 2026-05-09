@@ -108,6 +108,24 @@ export function CamViewer({ cam, onBack, onSnap, missionStop }) {
           </span>
           <span>{cam.road || cam.view || 'TfL'}</span>
         </div>
+        {Number.isFinite(cam.lat) && Number.isFinite(cam.lng) && (
+          <div className="row mt-2" style={{ justifyContent: 'flex-end' }}>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${cam.lat},${cam.lng}&travelmode=walking`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="chip"
+              style={{
+                fontSize: 10,
+                padding: '4px 8px',
+                textDecoration: 'none',
+              }}
+              title="Walking directions in Google Maps"
+            >
+              ↗ WALK HERE
+            </a>
+          </div>
+        )}
         {missionStop && (
           <div
             className="mt-2 hud"
