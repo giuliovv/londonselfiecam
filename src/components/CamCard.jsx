@@ -1,9 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const REFRESH_INTERVAL_MS = 60_000;
+const REFRESH_INTERVAL_MS = 5 * 60_000; // TFL updates clips every ~5 min
 
 function formatDist(km) {
   return km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
+}
+
+function formatAge(seconds) {
+  if (seconds < 60) return `${seconds}s ago`;
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s ago`;
+}
+
+function formatCountdown(seconds) {
+  const remaining = Math.max(0, Math.round(REFRESH_INTERVAL_MS / 1000) - seconds);
+  return `next in ${Math.floor(remaining / 60)}m ${remaining % 60}s`;
 }
 
 export function CamCard({ cam, getProp }) {
@@ -15,15 +25,14 @@ export function CamCard({ cam, getProp }) {
 
   const refresh = useCallback(() => setTs(Date.now()), []);
 
-  // Auto-refresh clip every 30 s
   useEffect(() => {
     const id = setInterval(refresh, REFRESH_INTERVAL_MS);
     return () => clearInterval(id);
   }, [refresh]);
 
-  // Update "X s ago" counter every second
   useEffect(() => {
-    const id = setInterval(() => setSecondsAgo(Math.floor((Date.now() - ts) / 1000)), 1000);
+    setSecondsAgo(0);
+    const id = setInterval(() => setSecondsAgo((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [ts]);
 
@@ -55,8 +64,8 @@ export function CamCard({ cam, getProp }) {
         <div className="cam-meta">
           <span>{formatDist(cam.distKm)}</span>
           {view && <span className="badge">{view}</span>}
-          <span className="badge live">● Live</span>
-          <span className="refresh-age">refreshed {secondsAgo}s ago</span>
+          <span className="badge">10s clip · {formatAge(secondsAgo)}</span>
+          <span className="refresh-age">{formatCountdown(secondsAgo)}</span>
         </div>
       </div>
     </div>
