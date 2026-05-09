@@ -23,14 +23,6 @@ export function DesktopSidekick() {
 
       <div className="sidekick-divider" aria-hidden="true" />
 
-      <h2 className="sidekick-title h-display glitch">
-        LONDON
-        <br />
-        SELFIE
-        <br />
-        CAM<span className="accent">.</span>
-      </h2>
-
       <p className="sidekick-copy">
         Find a TfL cam near you,
         <br />
