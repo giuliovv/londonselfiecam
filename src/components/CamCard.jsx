@@ -1,22 +1,39 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
 function formatDist(km) {
   return km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
 }
 
-function bustCache(url) {
-  return `${url}?t=${Date.now()}`;
-}
-
 export function CamCard({ cam, getProp }) {
-  const [imgSrc, setImgSrc] = useState(() => bustCache(getProp(cam, 'imageUrl')));
+  const videoUrl = getProp(cam, 'videoUrl');
+  const imageUrl = getProp(cam, 'imageUrl');
   const view = getProp(cam, 'view');
+  const videoRef = useRef(null);
+  const [key, setKey] = useState(0);
+
+  const refresh = useCallback(() => {
+    setKey((k) => k + 1);
+  }, []);
 
   return (
     <div className="cam-card">
       <div className="cam-img-wrap">
-        <img className="cam-img" src={imgSrc} alt={cam.commonName} />
-        <button className="refresh-btn" onClick={() => setImgSrc(bustCache(getProp(cam, 'imageUrl')))} title="Refresh">
+        {videoUrl ? (
+          <video
+            key={key}
+            ref={videoRef}
+            className="cam-img"
+            src={`${videoUrl}?t=${key}`}
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster={imageUrl}
+          />
+        ) : (
+          <img className="cam-img" src={`${imageUrl}?t=${key}`} alt={cam.commonName} />
+        )}
+        <button className="refresh-btn" onClick={refresh} title="Reload clip">
           ↺
         </button>
       </div>
@@ -37,7 +54,7 @@ export function CamThumb({ cam, getProp, onClick }) {
     <button className="nearby-item" onClick={onClick}>
       <img
         className="nearby-thumb"
-        src={`${getProp(cam, 'imageUrl')}?t=${Date.now()}`}
+        src={getProp(cam, 'imageUrl')}
         alt=""
         loading="lazy"
       />
