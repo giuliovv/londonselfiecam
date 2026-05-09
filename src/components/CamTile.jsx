@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useTickingTime } from '../hooks/useTickingTime';
 
-// Refresh static jam-cam JPGs every minute to keep the wall visibly alive.
+// TFL refreshes both the JPG snapshot and the MP4 clip on the order of a
+// minute. Bust the URL on a slightly randomised cadence so 24 wall tiles
+// don't all reload in lockstep.
 const IMG_REFRESH_MS = 60_000;
+const VIDEO_REFRESH_MS = 75_000;
 
 export function CamTile({ cam, onClick, big = false, hideHud = false, video = false, label }) {
   const time = useTickingTime();
@@ -10,13 +13,22 @@ export function CamTile({ cam, onClick, big = false, hideHud = false, video = fa
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!cam?.imageUrl || video) return undefined;
-    const id = setInterval(
-      () => setBust(Date.now()),
-      IMG_REFRESH_MS + Math.random() * 8000,
-    );
-    return () => clearInterval(id);
-  }, [cam?.imageUrl, video]);
+    if (!cam?.imageUrl && !cam?.videoUrl) return undefined;
+    const period = video ? VIDEO_REFRESH_MS : IMG_REFRESH_MS;
+    // Stagger the first refresh per-tile so all 24 don't reload in lockstep.
+    let interval;
+    const start = setTimeout(() => {
+      setBust(Date.now());
+      interval = setInterval(
+        () => setBust(Date.now()),
+        period + Math.random() * 8000,
+      );
+    }, Math.random() * period);
+    return () => {
+      clearTimeout(start);
+      if (interval) clearInterval(interval);
+    };
+  }, [cam?.imageUrl, cam?.videoUrl, video]);
 
   if (!cam || cam.available === false) {
     return <div className="cam-tile" data-state="off" onClick={onClick} />;
@@ -38,6 +50,7 @@ export function CamTile({ cam, onClick, big = false, hideHud = false, video = fa
           loop
           muted
           playsInline
+          preload="auto"
           onLoadedData={() => setLoaded(true)}
         />
       ) : src ? (
@@ -73,4 +86,3 @@ export function CamTile({ cam, onClick, big = false, hideHud = false, video = fa
     </div>
   );
 }
-

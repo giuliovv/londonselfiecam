@@ -5,7 +5,6 @@ import { useGeolocation } from './hooks/useGeolocation';
 import { Splash } from './components/Splash';
 import { Statusbar } from './components/Statusbar';
 import { Tabbar } from './components/Tabbar';
-import { Tweaks } from './components/Tweaks';
 import { Landing } from './screens/Landing';
 import { MapScreen } from './screens/MapScreen';
 import { CamViewer } from './screens/CamViewer';
@@ -14,16 +13,7 @@ import { Planner } from './screens/Planner';
 import { Feed } from './screens/Feed';
 import { Me } from './screens/Me';
 
-const DEFAULT_TWEAKS = {
-  theme: 'y2k',
-  hook: 'wall',
-  plannerLayout: 'timeline',
-};
-
 export default function App() {
-  const [tweaks, setTweaks] = useState(DEFAULT_TWEAKS);
-  const setTweak = (k, v) => setTweaks((t) => ({ ...t, [k]: v }));
-
   const { cams, loading, error, byId, nearestTo } = useTflCams();
   const geo = useGeolocation();
 
@@ -32,11 +22,6 @@ export default function App() {
   const [openCamId, setOpenCamId] = useState(null);
   const [snap, setSnap] = useState(null);
   const [activeRoute, setActiveRoute] = useState(null);
-
-  // Theme attribute on <html>
-  useEffect(() => {
-    document.documentElement.dataset.theme = tweaks.theme;
-  }, [tweaks.theme]);
 
   // Splash for ~1.7s, but at least until first cams load
   useEffect(() => {
@@ -77,7 +62,6 @@ export default function App() {
     ? byId(openCamId) || sortedCams.find((c) => c.id === openCamId) || sortedCams[0]
     : null;
 
-  // Modal-ish: cam viewer takes over the phone shell
   if (openCamId) {
     return (
       <div className="app-shell">
@@ -119,19 +103,13 @@ export default function App() {
           )}
 
           {tab === 'live' && (
-            <Landing
-              hook={tweaks.hook}
-              cams={sortedCams}
-              onEnter={() => setTab('map')}
-              onPickCam={openCam}
-            />
+            <Landing cams={sortedCams} onEnter={() => setTab('map')} onPickCam={openCam} />
           )}
           {tab === 'map' && <MapScreen cams={sortedCams} onOpenCam={openCam} />}
           {tab === 'feed' && <Feed cams={sortedCams} onOpenCam={openCam} />}
           {tab === 'plan' && (
             <Planner
               cams={sortedCams}
-              layout={tweaks.plannerLayout}
               activeRoute={activeRoute}
               onStartRoute={setActiveRoute}
               onSnap={onSnap}
@@ -140,7 +118,6 @@ export default function App() {
           {tab === 'me' && <Me cams={sortedCams} onOpenCam={openCam} />}
         </div>
 
-        {/* center floating snap */}
         <button
           className="tab-snap"
           onClick={() => sortedCams[0] && openCam(sortedCams[0].id)}
@@ -150,14 +127,11 @@ export default function App() {
 
         <Tabbar tab={tab} onChange={setTab} />
 
-        {/* feed shortcut chip on landing */}
         {tab === 'live' && (
           <button className="stream-chip" onClick={() => setTab('feed')}>
             ↗ THE STREAM
           </button>
         )}
-
-        <Tweaks tweaks={tweaks} setTweak={setTweak} />
       </div>
     </div>
   );

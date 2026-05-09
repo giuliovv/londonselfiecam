@@ -4,7 +4,7 @@ import { CamViewer } from './CamViewer';
 import { ROUTES, missionFor } from '../data/london';
 import { resolveRouteCams } from '../hooks/useTflCams';
 
-export function Planner({ cams, layout, activeRoute, onStartRoute, onSnap }) {
+export function Planner({ cams, activeRoute, onStartRoute, onSnap }) {
   const [openRoute, setOpenRoute] = useState(null);
 
   if (activeRoute) {
@@ -12,7 +12,6 @@ export function Planner({ cams, layout, activeRoute, onStartRoute, onSnap }) {
       <RouteTimeline
         cams={cams}
         route={activeRoute}
-        layout={layout}
         onClose={() => onStartRoute(null)}
         onSnap={onSnap}
       />
@@ -361,7 +360,7 @@ function RouteDetail({ route, cams, onBack, onStart }) {
   );
 }
 
-function RouteTimeline({ route, cams, layout, onClose, onSnap }) {
+function RouteTimeline({ route, cams, onClose, onSnap }) {
   const [stepIdx, setStepIdx] = useState(0);
   const [openCam, setOpenCam] = useState(null);
   const stops = useMemo(() => resolveRouteCams(route, cams), [route, cams]);
@@ -378,18 +377,6 @@ function RouteTimeline({ route, cams, layout, onClose, onSnap }) {
           setOpenCam(null);
           onSnap?.(s);
         }}
-      />
-    );
-  }
-
-  if (layout === 'postcards') {
-    return (
-      <PostcardLayout
-        route={route}
-        stops={stops}
-        stepIdx={stepIdx}
-        onPick={setOpenCam}
-        onClose={onClose}
       />
     );
   }
@@ -544,101 +531,3 @@ function RouteTimeline({ route, cams, layout, onClose, onSnap }) {
   );
 }
 
-function PostcardLayout({ route, stops, stepIdx, onPick, onClose }) {
-  return (
-    <div className="screen-scroll" style={{ background: 'var(--bg)' }}>
-      <div className="px-4 py-3 row between">
-        <button onClick={onClose} className="chip">
-          ◂ END
-        </button>
-        <div className="hud" style={{ color: route.color }}>
-          {route.icon} {route.name.toUpperCase()}
-        </div>
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          padding: '8px 16px 100px',
-          gap: 18,
-        }}
-      >
-        {stops.map((c, i) => (
-          <div
-            key={c.id}
-            onClick={() => onPick(i)}
-            style={{
-              width: '94%',
-              transform: `rotate(${i % 2 === 0 ? -1.5 : 2.2}deg)`,
-              transition: 'transform 0.3s ease',
-              filter: i < stepIdx ? 'grayscale(0.5) brightness(0.7)' : 'none',
-            }}
-            className="polaroid"
-          >
-            <div className="frame">
-              <CamTile cam={c} hideHud />
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 6,
-                  top: 6,
-                  fontFamily: 'var(--font-hud)',
-                  fontSize: 9,
-                  color: '#fff',
-                  background: 'rgba(0,0,0,0.5)',
-                  padding: '1px 5px',
-                  letterSpacing: '0.1em',
-                }}
-              >
-                STOP {String(i + 1).padStart(2, '0')} · {c.shortId}
-              </div>
-              {i < stepIdx && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: '30% 10%',
-                    border: '4px solid var(--acc-1)',
-                    color: 'var(--acc-1)',
-                    fontFamily: 'var(--font-hud)',
-                    fontSize: 32,
-                    letterSpacing: '0.15em',
-                    display: 'grid',
-                    placeItems: 'center',
-                    transform: 'rotate(-12deg)',
-                  }}
-                >
-                  SNAPPED
-                </div>
-              )}
-            </div>
-            <div className="meta">
-              <span
-                style={{
-                  maxWidth: '60%',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {(c.label || c.displayName).toUpperCase()}
-              </span>
-              <span>{c.road || 'TFL'}</span>
-            </div>
-            <div
-              className="hud"
-              style={{
-                fontSize: 10,
-                color: '#444',
-                marginTop: 6,
-                letterSpacing: '0.12em',
-              }}
-            >
-              ▍ {missionFor(c.id, i).toUpperCase()}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}

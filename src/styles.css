@@ -220,10 +220,6 @@
   position: relative;
   z-index: 30;
 }
-[data-theme="tfl"] .statusbar {
-  color: var(--ink);
-}
-
 /* ==== Buttons / chips ==== */
 .chip {
   display: inline-flex;
@@ -599,83 +595,6 @@
     transform: scale(2.5);
     opacity: 0;
   }
-}
-
-/* ==== TFL theme overrides for scenes ==== */
-[data-theme="tfl"] .cam-tile {
-  outline-color: var(--line);
-}
-[data-theme="tfl"] .scanlines,
-[data-theme="tfl"] .grain,
-[data-theme="tfl"] .crt-vignette {
-  display: none;
-}
-[data-theme="tfl"] .tab-snap {
-  background: var(--rec);
-  border-color: #fff;
-  box-shadow:
-    0 0 0 4px var(--bg),
-    0 0 20px rgba(220, 36, 31, 0.5);
-}
-
-/* ==== Tweaks micro panel ==== */
-.tweaks-fab {
-  position: absolute;
-  right: 14px;
-  bottom: 96px;
-  z-index: 65;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  background: var(--bg);
-  color: var(--ink);
-  border: 1px solid var(--ink);
-  font-family: var(--font-hud);
-  font-size: 14px;
-  letter-spacing: 0.1em;
-}
-.tweaks-popover {
-  position: absolute;
-  right: 14px;
-  bottom: 140px;
-  z-index: 80;
-  width: 248px;
-  background: var(--bg);
-  color: var(--ink);
-  border: 1px solid var(--ink);
-  padding: 12px;
-  font-family: var(--font-hud);
-}
-.tweaks-popover h4 {
-  font-family: var(--font-hud);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  color: var(--ink-dim);
-  text-transform: uppercase;
-  margin: 4px 0 8px;
-  font-weight: 400;
-}
-.tweaks-popover .opts {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.tweaks-popover .opt {
-  padding: 8px 4px;
-  background: transparent;
-  border: 1px solid var(--line);
-  color: var(--ink);
-  font-family: var(--font-hud);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.tweaks-popover .opt[data-on="true"] {
-  background: var(--ink);
-  color: var(--bg);
-  border-color: var(--ink);
 }
 
 /* ==== Live wall grid ==== */
