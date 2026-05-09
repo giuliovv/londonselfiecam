@@ -23,13 +23,23 @@ export function DesktopSidekick() {
 
       <div className="sidekick-divider" aria-hidden="true" />
 
-      <p className="sidekick-copy">
-        Find a TfL cam near you,
-        <br />
-        walk up, wave — and snap
-        <br />
-        your <strong>London selfie.</strong>
-      </p>
+      <div className="sidekick-intro">
+        <p className="sidekick-copy">
+          Find a TfL cam near you,
+          <br />
+          walk up, wave — and snap
+          <br />
+          your <strong>London selfie.</strong>
+        </p>
+        <div className="sidekick-scroll-cue" aria-hidden="true">
+          <span className="scroll-cue-label">SCROLL</span>
+          <span className="scroll-cue-rail">
+            <span className="scroll-cue-arrow">↓</span>
+            <span className="scroll-cue-arrow">↓</span>
+            <span className="scroll-cue-arrow">↓</span>
+          </span>
+        </div>
+      </div>
 
       <div className="sidekick-example">
         <div className="sidekick-example-steps">
