@@ -18,6 +18,19 @@ const WEATHERS = [
   '13°C · CLOUDY',
 ];
 
+const PENS = {
+  sharpie: { family: '"Permanent Marker"', size: 26, color: '#1a1a1a', rotate: -2, weight: 400 },
+  cute: { family: '"Indie Flower"', size: 28, color: '#d63384', rotate: -1, weight: 400 },
+  cursive: { family: '"Caveat"', size: 32, color: '#1a4ea8', rotate: -3, weight: 700 },
+};
+
+function formatNoteDate(d) {
+  const day = d.getDate();
+  const month = d.toLocaleDateString('en-GB', { month: 'short' });
+  const year = String(d.getFullYear()).slice(2);
+  return `${day} ${month} '${year}`;
+}
+
 // Remap TFL S3 URLs to our CORS-enabled proxy path
 function proxify(url) {
   if (!url) return null;
@@ -37,7 +50,8 @@ function loadImage(url) {
   });
 }
 
-export async function generatePolaroid(snap) {
+export async function generatePolaroid(snap, options = {}) {
+  const pen = PENS[options.pen] || PENS.sharpie;
   const DPR = 2;
   const W = 400, PAD = 16, IMG_W = W - PAD * 2, STRIP = 92;
   const H = PAD + IMG_W + STRIP;
@@ -141,11 +155,22 @@ export async function generatePolaroid(snap) {
   ctx.textAlign = 'right';
   ctx.fillText(road.toUpperCase(), W - PAD - 4, PAD + IMG_W + 22);
 
-  // Stars
-  ctx.fillStyle = '#aaa';
-  ctx.font = '10px monospace';
+  // Handwritten note — replaces the old "★ ★ ★ LSC ★ ★ ★" line.
+  // Font must be loaded before measuring/drawing or canvas falls back to serif.
+  try {
+    await document.fonts.load(`${pen.weight} ${pen.size}px ${pen.family}`);
+  } catch { /* fall through with default font */ }
+
+  const note = `London ♥ ${formatNoteDate(d)}`;
+  ctx.save();
+  ctx.fillStyle = pen.color;
+  ctx.font = `${pen.weight} ${pen.size}px ${pen.family}`;
   ctx.textAlign = 'center';
-  ctx.fillText('★ ★ ★  LSC  ★ ★ ★', W / 2, PAD + IMG_W + STRIP - 14);
+  ctx.textBaseline = 'middle';
+  ctx.translate(W / 2, PAD + IMG_W + STRIP - 22);
+  ctx.rotate((pen.rotate * Math.PI) / 180);
+  ctx.fillText(note, 0, 0);
+  ctx.restore();
 
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
 }
