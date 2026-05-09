@@ -58,38 +58,43 @@ export function SnapResult({ snap, onDone, onShare }) {
 
   async function handleShare() {
     setSharing(true);
-    try {
-      const blob = blobRef.current;
-      const text = `Spotted on a TFL jam cam 📸 ${snap.cam.displayName.toUpperCase()} · #LondonSelfieCam`;
+    const blob = blobRef.current;
+    const text = `Spotted on a TFL jam cam 📸 ${snap.cam.displayName.toUpperCase()} · #LondonSelfieCam`;
+    const imgUrl = snap.cam.imageUrl
+      ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
+      : window.location.href;
 
-      // Try file share — skip canShare() check as it false-negatives on many devices
-      if (navigator.share && blob) {
-        try {
-          const file = new File([blob], 'londonselfiecam.jpg', { type: 'image/jpeg' });
-          await navigator.share({ files: [file], title: 'London Selfie Cam', text });
-          onShare?.();
-          return;
-        } catch (e) {
-          if (e.name === 'AbortError') { onShare?.(); return; } // user cancelled
-          // browser doesn't support file sharing — fall through to URL
-        }
+    // Attempt 1: file share
+    if (navigator.share && blob) {
+      try {
+        const file = new File([blob], 'londonselfiecam.jpg', { type: 'image/jpeg' });
+        await navigator.share({ files: [file], title: 'London Selfie Cam', text });
+        setSharing(false);
+        return; // success — stay on screen, let user exit themselves
+      } catch (e) {
+        if (e.name === 'AbortError') { setSharing(false); return; } // user cancelled
+        // file sharing unsupported — fall through
       }
-
-      // Fallback: share cam image URL (shows image preview in most apps)
-      const imgUrl = snap.cam.imageUrl
-        ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
-        : window.location.href;
-      if (navigator.share) {
-        await navigator.share({ title: 'London Selfie Cam', text, url: imgUrl });
-      } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(`${text}\n${imgUrl}`);
-      }
-      onShare?.();
-    } catch {
-      onShare?.();
-    } finally {
-      setSharing(false);
     }
+
+    // Attempt 2: URL share
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'London Selfie Cam', text, url: imgUrl });
+        setSharing(false);
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') { setSharing(false); return; }
+        // unsupported — fall through
+      }
+    }
+
+    // Attempt 3: clipboard
+    try {
+      await navigator.clipboard.writeText(`${text}\n${imgUrl}`);
+    } catch { /* silent */ }
+
+    setSharing(false);
   }
 
   async function handleSave() {
