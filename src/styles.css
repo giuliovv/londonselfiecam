@@ -193,7 +193,6 @@
   justify-content: center;
   gap: 14px;
   padding: 18px 0;
-  border-left: 1px dashed rgba(245, 241, 232, 0.14);
   background:
     repeating-linear-gradient(
       to bottom,
