@@ -1,0 +1,37 @@
+name: Deploy to CloudFront
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync dist s3://londonselfiecam-854656252703/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable"
+          aws s3 cp s3://londonselfiecam-854656252703/index.html \
+            s3://londonselfiecam-854656252703/index.html \
+            --metadata-directive REPLACE \
+            --cache-control "no-cache" \
+            --content-type "text/html"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id EOLFCKR7OSWQB \
+            --paths "/*"
