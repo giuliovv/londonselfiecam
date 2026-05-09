@@ -192,7 +192,7 @@ function RouteDetail({ route, cams, onBack, onStart }) {
   return (
     <div
       className="screen-scroll"
-      style={{ background: 'var(--bg)', padding: '0 0 120px' }}
+      style={{ background: 'var(--bg)', padding: '0 0 24px' }}
     >
       <div
         style={{
@@ -334,12 +334,14 @@ function RouteDetail({ route, cams, onBack, onStart }) {
 
       <div
         style={{
-          position: 'absolute',
+          position: 'sticky',
           bottom: 0,
           left: 0,
           right: 0,
           padding: 16,
-          background: 'linear-gradient(180deg, transparent, var(--bg) 30%)',
+          background:
+            'linear-gradient(180deg, rgba(10,10,10,0) 0%, var(--bg) 35%)',
+          zIndex: 5,
         }}
       >
         <button
@@ -353,6 +355,7 @@ function RouteDetail({ route, cams, onBack, onStart }) {
             fontSize: 16,
             letterSpacing: '0.25em',
             border: '2px solid var(--ink)',
+            cursor: 'pointer',
           }}
         >
           ▶ &nbsp;START THIS ROUTE

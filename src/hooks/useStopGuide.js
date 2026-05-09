@@ -10,7 +10,9 @@ import { useEffect, useState } from 'react';
 import { haversineKm } from './useTflCams';
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const CACHE_PREFIX = 'lsc.guide.';
+// Bumped to v2 when POI lat/lng were added — old cache entries lack the
+// coordinates needed to render the per-POI map links.
+const CACHE_PREFIX = 'lsc.guide.v2.';
 
 function readCache(camId) {
   try {
@@ -125,6 +127,8 @@ async function fetchOverpass(lat, lng) {
       name: e.tags.name,
       category: poiCategory(e.tags),
       icon: poiIcon(e.tags),
+      lat: e.lat,
+      lng: e.lon,
       distM: Math.round(haversineKm(lat, lng, e.lat, e.lon) * 1000),
     }))
     .sort((a, b) => a.distM - b.distM)
