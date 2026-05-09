@@ -3,6 +3,16 @@ import { QRCodeSVG } from 'qrcode.react';
 const MOBILE_URL = 'https://londonselfiecam-virid.vercel.app/';
 const URL_LABEL = 'londonselfiecam-virid.vercel.app';
 
+const PROTOCOL_STEPS = [
+  ['LOCATE', 'GPS finds your location and pins the nearest TfL JamCam on the map.'],
+  ['PEEK', 'Tap a camera pin to see the live feed and street name.'],
+  ['NAVIGATE', 'Google Maps walks you to the exact spot in the camera’s field of view.'],
+  ['LISTEN', 'An AI audio guide plays as you walk — narrated by ElevenLabs.'],
+  ['SNAP', 'Arrive, open the live cam in the app, and tap Snap.'],
+  ['KEEP', 'Photo saves to your London Photo Book with location tags.'],
+  ['SHARE', 'Share to social or collect more cameras across the city.'],
+];
+
 export function DesktopSidekick() {
   return (
     <aside className="desktop-sidekick" aria-label="Open on phone">
@@ -48,8 +58,31 @@ export function DesktopSidekick() {
         </div>
       </div>
 
+      <section className="sidekick-protocol" aria-label="How it works">
+        <header className="sidekick-protocol-header">
+          <span className="sidekick-protocol-tag">
+            <span className="rec-dot" />
+            PROTOCOL
+          </span>
+          <span className="sidekick-protocol-count">07 STEPS</span>
+        </header>
+        <ol className="sidekick-protocol-list">
+          {PROTOCOL_STEPS.map(([title, desc], i) => (
+            <li key={title} className="sidekick-protocol-step">
+              <span className="sidekick-protocol-num">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <span className="sidekick-protocol-body">
+                <span className="sidekick-protocol-title">{title}</span>
+                <span className="sidekick-protocol-desc">{desc}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       <div className="sidekick-scroll-nudge" aria-hidden="true">
-        ↓ SCROLL
+        ↓ SCROLL FOR QR
       </div>
 
       <h3 className="sidekick-qr-title">
