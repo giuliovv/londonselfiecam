@@ -27,9 +27,10 @@ const FILTERS = {
   vhs: 'saturate(1.4) contrast(1.1) hue-rotate(-10deg)',
 };
 
-// Public site, used for share link so recipients land on prod even when
-// the photo was taken in dev (localhost).
-const SITE_URL = 'https://d2bx7f2chgqsy.cloudfront.net';
+// Used for share links. In the browser this is the current origin (Vercel
+// in prod, localhost in dev). Recipients open whichever environment the
+// share was created from.
+const SITE_URL = typeof window !== 'undefined' ? window.location.origin : '';
 
 const PENS = {
   sharpie: {
