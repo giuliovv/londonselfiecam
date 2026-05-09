@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { MapView } from '../components/MapView';
 import { CamTile } from '../components/CamTile';
 import { loadSnaps } from '../lib/snapStorage';
+import { SPONSOR_PINS } from '../data/sponsors';
 
 const LONDON_CENTER = { lat: 51.5074, lng: -0.1278 };
 const QUADRANTS = [
@@ -25,9 +26,14 @@ function camInQuadrant(cam, q) {
 
 export function MapScreen({ cams, onOpenCam, userLoc }) {
   const [sel, setSel] = useState(null);
+  const [selSponsor, setSelSponsor] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [quadrant, setQuadrant] = useState('ALL');
   const [capturedOnly, setCapturedOnly] = useState(false);
+
+  const onPickCam = (id) => { setSel(id); setSelSponsor(null); };
+  const onPickSponsor = (id) => { setSelSponsor(id); setSel(null); };
+  const sponsor = SPONSOR_PINS.find((s) => s.id === selSponsor);
 
   const capturedIds = useMemo(() => {
     if (!capturedOnly) return null;
@@ -52,7 +58,14 @@ export function MapScreen({ cams, onOpenCam, userLoc }) {
 
   return (
     <div className="screen" style={{ background: 'var(--bg)' }}>
-      <MapView cams={visibleCams} onPick={setSel} selected={sel} userLoc={userLoc} />
+      <MapView
+        cams={visibleCams}
+        sponsors={SPONSOR_PINS}
+        onPick={onPickCam}
+        onPickSponsor={onPickSponsor}
+        selected={sel}
+        userLoc={userLoc}
+      />
 
       <div
         style={{
@@ -170,7 +183,102 @@ export function MapScreen({ cams, onOpenCam, userLoc }) {
         )}
       </div>
 
-      {selCam && (
+      {sponsor && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 12,
+            right: 12,
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)',
+            zIndex: 80,
+            background: 'var(--bg)',
+            border: `1px solid ${sponsor.color}`,
+            padding: 10,
+            boxShadow: `0 0 18px ${sponsor.color}55`,
+          }}
+        >
+          <div className="row between" style={{ marginBottom: 8 }}>
+            <span
+              className="hud"
+              style={{
+                fontSize: 9,
+                letterSpacing: '0.3em',
+                background: sponsor.color,
+                color: '#fff',
+                padding: '2px 6px',
+              }}
+            >
+              SPONSORED · {sponsor.tag}
+            </span>
+            <button
+              onClick={() => setSelSponsor(null)}
+              className="hud"
+              style={{
+                fontSize: 11,
+                color: 'var(--ink-dim)',
+                letterSpacing: '0.2em',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <div
+            className="text-mono"
+            style={{
+              fontSize: 16,
+              color: 'var(--ink)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {sponsor.name}
+          </div>
+          <div
+            className="hud"
+            style={{ fontSize: 11, color: 'var(--ink-dim)', marginTop: 2 }}
+          >
+            {sponsor.blurb}
+          </div>
+          <div
+            className="row gap-2 mt-2"
+            style={{ alignItems: 'center' }}
+          >
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${sponsor.lat},${sponsor.lng}&travelmode=walking`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="chip"
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                padding: 8,
+                textDecoration: 'none',
+                color: '#fff',
+                background: sponsor.color,
+                borderColor: sponsor.color,
+              }}
+            >
+              {sponsor.cta}
+            </a>
+          </div>
+          <div
+            className="hud"
+            style={{
+              fontSize: 8,
+              color: 'var(--ink-dim)',
+              letterSpacing: '0.3em',
+              marginTop: 6,
+              textAlign: 'right',
+            }}
+          >
+            AD · LSC NETWORK
+          </div>
+        </div>
+      )}
+
+      {selCam && !sponsor && (
         <div
           style={{
             position: 'absolute',

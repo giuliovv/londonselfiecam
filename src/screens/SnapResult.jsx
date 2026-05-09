@@ -4,6 +4,7 @@ import { generatePolaroid } from '../lib/generatePolaroid';
 import { saveSnap } from '../lib/snapStorage';
 import { uploadSnap, updateSnapAi } from '../lib/firebaseFeed';
 import { captionPolaroid, speak } from '../lib/aiClient';
+import { pickBillboard } from '../data/sponsors';
 
 const PERSONAS = [
   { id: 'sassy', label: 'sassy' },
@@ -119,6 +120,7 @@ export function SnapResult({ snap, user, onDone, onShare }) {
     ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
     : null;
   const filterCss = FILTERS[snap.filter] || 'none';
+  const billboard = pickBillboard(snap.frozenAt || +d || snap.cam.shortId);
 
   useEffect(() => {
     const t = setTimeout(() => setPrinted(true), 250);
@@ -379,6 +381,23 @@ export function SnapResult({ snap, user, onDone, onShare }) {
           ) : (
             <div className="cam-feed cam-feed--placeholder" />
           )}
+
+          <div
+            className="snap-billboard"
+            style={{
+              '--bb-bg': billboard.bg,
+              '--bb-fg': billboard.fg,
+              '--bb-accent': billboard.accent,
+            }}
+            aria-hidden="true"
+          >
+            <div className="snap-billboard-inner">
+              <div className="snap-billboard-brand">{billboard.brand}</div>
+              <div className="snap-billboard-headline">{billboard.headline}</div>
+            </div>
+            <div className="snap-billboard-tag">SPONSORED</div>
+          </div>
+
           <div className="cam-scanlines" />
 
           <div

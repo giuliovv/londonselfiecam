@@ -244,6 +244,119 @@
   100% { opacity: 0.1; transform: translateY(9px); }
 }
 
+/* ==== Sponsored ad pins on the map ==== */
+.sponsor-marker {
+  cursor: pointer;
+  transform-origin: bottom center;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+  transition: transform 0.15s ease;
+  will-change: transform;
+}
+.sponsor-marker:hover {
+  transform: scale(1.06);
+}
+.sponsor-marker-inner {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 4px;
+  background: var(--sp-color, #ffae00);
+  color: #fff;
+  font-family: var(--font-hud);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 2px solid #fff;
+  white-space: nowrap;
+  animation: sponsor-pulse 2.4s ease-in-out infinite;
+}
+.sponsor-marker-inner::after {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #fff;
+}
+.sponsor-marker-inner::before {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 3px solid transparent;
+  border-top-color: var(--sp-color, #ffae00);
+  z-index: 1;
+}
+.sponsor-marker-tag {
+  background: rgba(0, 0, 0, 0.32);
+  padding: 1px 5px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+}
+.sponsor-marker-name {
+  font-weight: 400;
+}
+@keyframes sponsor-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+}
+
+/* ==== Virtual billboard composited onto a snap ==== */
+.snap-billboard {
+  position: absolute;
+  top: 18%;
+  left: 5%;
+  width: 40%;
+  z-index: 3;
+  pointer-events: none;
+  transform: perspective(420px) rotateY(-16deg) skewY(-3deg);
+  transform-origin: left center;
+  filter:
+    drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+}
+.snap-billboard-inner {
+  position: relative;
+  padding: 8px 10px 9px;
+  background: var(--bb-bg, #fff);
+  color: var(--bb-fg, #000);
+  border: 2px solid var(--bb-accent, #000);
+  outline: 1px solid rgba(0, 0, 0, 0.35);
+  outline-offset: 2px;
+  font-family: var(--font-hud);
+  text-transform: uppercase;
+}
+.snap-billboard-brand {
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  color: var(--bb-accent);
+  border-bottom: 1px solid var(--bb-accent);
+  padding-bottom: 3px;
+  margin-bottom: 4px;
+}
+.snap-billboard-headline {
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: pre-line;
+}
+.snap-billboard-tag {
+  position: absolute;
+  bottom: -13px;
+  left: 0;
+  font-family: var(--font-hud);
+  font-size: 8px;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.65);
+  padding: 1px 5px;
+  text-transform: uppercase;
+}
+
 .sidekick-qr {
   position: relative;
   padding: 22px;
