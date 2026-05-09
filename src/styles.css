@@ -261,6 +261,44 @@
   margin-right: 6px;
 }
 
+.sidekick-example {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sidekick-example-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-hud);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+}
+.sidekick-example-steps span:nth-child(odd) {
+  color: var(--ink);
+}
+.sidekick-example-frame {
+  position: relative;
+  background: #f5f1e8;
+  padding: 10px 10px 36px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  transform: rotate(-1deg);
+  line-height: 0;
+}
+.sidekick-example-frame img {
+  width: 100%;
+  display: block;
+}
+.sidekick-example-caption {
+  font-family: var(--font-hud);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  text-align: center;
+  padding-top: 2px;
+}
+
 .sidekick-foot {
   display: flex;
   flex-direction: column;

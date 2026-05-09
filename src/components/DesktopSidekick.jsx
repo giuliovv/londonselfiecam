@@ -22,14 +22,31 @@ export function DesktopSidekick() {
       </h2>
 
       <p className="sidekick-copy">
-        This rig was built for the
+        Find a TfL cam near you,
         <br />
-        palm of your hand. <strong>600+ live</strong>
+        walk up, wave — and snap
         <br />
-        TFL street cams, captured,
-        <br />
-        filtered, and shareable.
+        your <strong>London selfie.</strong>
       </p>
+
+      <div className="sidekick-example">
+        <div className="sidekick-example-steps">
+          <span>① FIND A CAM</span>
+          <span>→</span>
+          <span>② WAVE 👋</span>
+          <span>→</span>
+          <span>③ SNAP</span>
+        </div>
+        <div className="sidekick-example-frame">
+          <img
+            src="/example-snap.jpg"
+            alt="Example polaroid snap from Regent St"
+          />
+        </div>
+        <div className="sidekick-example-caption">
+          REAL SNAP · REGENT ST / CONDUIT ST · JC451
+        </div>
+      </div>
 
       <div className="sidekick-qr">
         <div className="sidekick-qr-header">
