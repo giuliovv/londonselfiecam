@@ -80,13 +80,30 @@ export function MapScreen({ cams, onOpenCam, userLoc }) {
               <div className="hud" style={{ fontSize: 10, color: 'var(--ink-dim)' }}>
                 {selCam.view || 'CCTV'} · {selCam.road || 'TfL'}
               </div>
-              <button
-                onClick={() => onOpenCam(selCam.id)}
-                className="chip rec mt-2"
-                style={{ width: '100%', justifyContent: 'center', padding: 8 }}
-              >
-                ▶ OPEN CAM
-              </button>
+              <div className="row gap-2 mt-2">
+                <button
+                  onClick={() => onOpenCam(selCam.id)}
+                  className="chip rec"
+                  style={{ flex: 1, justifyContent: 'center', padding: 8 }}
+                >
+                  ▶ OPEN CAM
+                </button>
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${selCam.lat},${selCam.lng}&travelmode=walking`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="chip"
+                  style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    padding: 8,
+                    textDecoration: 'none',
+                  }}
+                  title="Walking directions in Google Maps"
+                >
+                  ↗ DIRECTIONS
+                </a>
+              </div>
             </div>
           </div>
         </div>
