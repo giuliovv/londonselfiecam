@@ -126,6 +126,12 @@ body {
   color: #4caf50;
 }
 
+.refresh-age {
+  font-size: 0.72rem;
+  color: #444;
+  margin-left: auto;
+}
+
 /* --- Nearby --- */
 .nearby-section {
   width: 100%;

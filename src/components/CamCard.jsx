@@ -1,4 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+const REFRESH_INTERVAL_MS = 60_000;
 
 function formatDist(km) {
   return km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
@@ -8,22 +10,33 @@ export function CamCard({ cam, getProp }) {
   const videoUrl = getProp(cam, 'videoUrl');
   const imageUrl = getProp(cam, 'imageUrl');
   const view = getProp(cam, 'view');
-  const videoRef = useRef(null);
-  const [key, setKey] = useState(0);
+  const [ts, setTs] = useState(() => Date.now());
+  const [secondsAgo, setSecondsAgo] = useState(0);
 
-  const refresh = useCallback(() => {
-    setKey((k) => k + 1);
-  }, []);
+  const refresh = useCallback(() => setTs(Date.now()), []);
+
+  // Auto-refresh clip every 30 s
+  useEffect(() => {
+    const id = setInterval(refresh, REFRESH_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  // Update "X s ago" counter every second
+  useEffect(() => {
+    const id = setInterval(() => setSecondsAgo(Math.floor((Date.now() - ts) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [ts]);
+
+  const src = `${videoUrl || imageUrl}?t=${ts}`;
 
   return (
     <div className="cam-card">
       <div className="cam-img-wrap">
         {videoUrl ? (
           <video
-            key={key}
-            ref={videoRef}
+            key={ts}
             className="cam-img"
-            src={`${videoUrl}?t=${key}`}
+            src={src}
             autoPlay
             loop
             muted
@@ -31,7 +44,7 @@ export function CamCard({ cam, getProp }) {
             poster={imageUrl}
           />
         ) : (
-          <img className="cam-img" src={`${imageUrl}?t=${key}`} alt={cam.commonName} />
+          <img key={ts} className="cam-img" src={src} alt={cam.commonName} />
         )}
         <button className="refresh-btn" onClick={refresh} title="Reload clip">
           ↺
@@ -43,6 +56,7 @@ export function CamCard({ cam, getProp }) {
           <span>{formatDist(cam.distKm)}</span>
           {view && <span className="badge">{view}</span>}
           <span className="badge live">● Live</span>
+          <span className="refresh-age">refreshed {secondsAgo}s ago</span>
         </div>
       </div>
     </div>
