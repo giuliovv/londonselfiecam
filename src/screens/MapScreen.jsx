@@ -8,7 +8,7 @@ export function MapScreen({ cams, onOpenCam, userLoc }) {
 
   return (
     <div className="screen" style={{ background: 'var(--bg)' }}>
-      <MapView cams={cams.slice(0, 80)} onPick={setSel} pulsing selected={sel} userLoc={userLoc} />
+      <MapView cams={cams} onPick={setSel} selected={sel} userLoc={userLoc} />
 
       <div
         style={{
