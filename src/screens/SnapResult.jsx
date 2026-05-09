@@ -19,6 +19,41 @@ const FILTERS = {
   vhs: 'saturate(1.4) contrast(1.1) hue-rotate(-10deg)',
 };
 
+// Public site, used for share link so recipients land on prod even when
+// the photo was taken in dev (localhost).
+const SITE_URL = 'https://d2bx7f2chgqsy.cloudfront.net';
+
+const PENS = {
+  sharpie: {
+    family: '"Permanent Marker", "Caveat", cursive',
+    color: '#1a1a1a',
+    size: 22,
+    rotate: -2,
+    weight: 400,
+  },
+  cute: {
+    family: '"Indie Flower", "Caveat", cursive',
+    color: '#d63384',
+    size: 24,
+    rotate: -1,
+    weight: 400,
+  },
+  cursive: {
+    family: '"Caveat", cursive',
+    color: '#1a4ea8',
+    size: 28,
+    rotate: -3,
+    weight: 700,
+  },
+};
+
+function formatNoteDate(d) {
+  const day = d.getDate();
+  const month = d.toLocaleDateString('en-GB', { month: 'short' });
+  const year = String(d.getFullYear()).slice(2);
+  return `${day} ${month} '${year}`;
+}
+
 // Detect once at module load — no user gesture needed for canShare
 const CAN_SHARE_FILES =
   typeof navigator.canShare === 'function' &&
@@ -29,7 +64,7 @@ export function SnapResult({ snap, onDone, onShare }) {
   const [printed, setPrinted] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [saving, setSaving] = useState(false);
-  // polaroidBlob is generated once on mount; dataUrl derived from it
+  const [pen, setPen] = useState('sharpie');
   const blobRef = useRef(null);
   const dataUrlRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -49,38 +84,40 @@ export function SnapResult({ snap, onDone, onShare }) {
     return () => clearTimeout(t);
   }, []);
 
-  // Generate polaroid in background as soon as component mounts
+  // Regenerate polaroid whenever pen changes so the shared JPEG matches the preview.
+  // setReady resets `ready` for the new generation; lint rule allows this when
+  // the dependency change genuinely invalidates derived state.
   useEffect(() => {
     let cancelled = false;
-    generatePolaroid(snap).then((blob) => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReady(false);
+    generatePolaroid(snap, { pen }).then((blob) => {
       if (cancelled) return;
       blobRef.current = blob;
-      const url = URL.createObjectURL(blob);
-      dataUrlRef.current = url;
+      if (dataUrlRef.current) URL.revokeObjectURL(dataUrlRef.current);
+      dataUrlRef.current = URL.createObjectURL(blob);
       setReady(true);
-    }).catch(() => setReady(false));
+    }).catch(() => {});
     return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [snap, pen]);
 
   async function handleShare() {
     setSharing(true);
     const blob = blobRef.current;
-    const text = `Spotted on a TFL jam cam 📸 ${snap.cam.displayName.toUpperCase()} · #LondonSelfieCam`;
-    const imgUrl = snap.cam.imageUrl
-      ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
-      : window.location.href;
+    const camName = (snap.cam.displayName || 'London cam').toUpperCase();
+    const camId = snap.cam.shortId ? encodeURIComponent(snap.cam.shortId) : '';
+    const appLink = `${SITE_URL}/${camId ? `?cam=${camId}` : ''}`;
+    // Link embedded in text — iOS WhatsApp drops `url` when files are present.
+    const text = `Spotted on a TFL jam cam 📸 ${camName} · #LondonSelfieCam\n${appLink}`;
 
     try {
       if (CAN_SHARE_FILES && blob) {
-        // One call: file share
         const file = new File([blob], 'londonselfiecam.jpg', { type: 'image/jpeg' });
-        await navigator.share({ files: [file], title: 'London Selfie Cam', text });
+        await navigator.share({ files: [file], title: 'London Selfie Cam', text, url: appLink });
       } else if (CAN_SHARE) {
-        // One call: URL share
-        await navigator.share({ title: 'London Selfie Cam', text, url: imgUrl });
+        await navigator.share({ title: 'London Selfie Cam', text, url: appLink });
       } else {
-        // Clipboard copy
-        await navigator.clipboard.writeText(`${text}\n${imgUrl}`);
+        await navigator.clipboard.writeText(text);
       }
     } catch (e) {
       if (e.name !== 'AbortError') console.warn('Share failed:', e);
@@ -269,19 +306,64 @@ export function SnapResult({ snap, onDone, onShare }) {
             position: 'absolute',
             left: 0,
             right: 0,
-            bottom: 12,
+            bottom: 14,
             textAlign: 'center',
-            color: '#888',
-            fontSize: 11,
-            letterSpacing: '0.2em',
-            fontFamily: 'var(--font-hud)',
+            fontFamily: PENS[pen].family,
+            fontSize: PENS[pen].size,
+            color: PENS[pen].color,
+            fontWeight: PENS[pen].weight,
+            transform: `rotate(${PENS[pen].rotate}deg)`,
+            transformOrigin: 'center',
+            lineHeight: 1,
+            pointerEvents: 'none',
+            userSelect: 'none',
           }}
         >
-          ★ ★ ★ &nbsp;LSC&nbsp; ★ ★ ★
+          London ♥ {formatNoteDate(d)}
         </div>
       </div>
 
-      <div className="row gap-3 mt-6" style={{ width: '100%', maxWidth: 320 }}>
+      <div
+        className="row gap-2 mt-4"
+        style={{
+          width: '100%',
+          maxWidth: 320,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <span
+          style={{
+            fontFamily: 'var(--font-hud)',
+            fontSize: 10,
+            color: 'var(--ink-dim)',
+            letterSpacing: '0.2em',
+            marginRight: 4,
+          }}
+        >
+          PEN
+        </span>
+        {Object.keys(PENS).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPen(p)}
+            className="chip"
+            style={{
+              background: pen === p ? 'var(--ink)' : 'transparent',
+              color: pen === p ? 'var(--bg)' : 'var(--ink)',
+              fontSize: 10,
+              padding: '4px 10px',
+              fontFamily: PENS[p].family,
+              letterSpacing: 0,
+              textTransform: 'lowercase',
+            }}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      <div className="row gap-3 mt-3" style={{ width: '100%', maxWidth: 320 }}>
         <button
           onClick={handleShare}
           disabled={sharing}
