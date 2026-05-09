@@ -5,6 +5,7 @@ import { useGeolocation } from './hooks/useGeolocation';
 import { Splash } from './components/Splash';
 import { Statusbar } from './components/Statusbar';
 import { Tabbar } from './components/Tabbar';
+import { DesktopSidekick } from './components/DesktopSidekick';
 import { Landing } from './screens/Landing';
 import { MapScreen } from './screens/MapScreen';
 import { CamViewer } from './screens/CamViewer';
@@ -74,6 +75,7 @@ export default function App() {
           <Splash show={splash} camCount={cams.length} />
           <CamViewer cam={camForViewer} onBack={closeCam} onSnap={onSnap} />
         </div>
+        <DesktopSidekick />
       </div>
     );
   }
@@ -87,6 +89,7 @@ export default function App() {
             onShare={() => setSnap(null)}
           />
         </div>
+        <DesktopSidekick />
       </div>
     );
   }
@@ -138,6 +141,7 @@ export default function App() {
           </button>
         )}
       </div>
+      <DesktopSidekick />
     </div>
   );
 }
