@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>London Selfie Cam</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 32px;
+    }
+
+    #find-btn {
+      background: #e5061a;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 32px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    #find-btn:hover { background: #c0051a; }
+    #find-btn:disabled { background: #444; cursor: default; }
+
+    #status {
+      margin-top: 20px;
+      font-size: 0.9rem;
+      color: #aaa;
+      min-height: 1.4em;
+      text-align: center;
+    }
+
+    #result {
+      display: none;
+      margin-top: 32px;
+      width: 100%;
+      max-width: 680px;
+      background: #161616;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+    }
+
+    #cam-img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      background: #222;
+    }
+
+    .cam-info {
+      padding: 16px 20px;
+    }
+
+    .cam-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .cam-meta {
+      font-size: 0.8rem;
+      color: #888;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .cam-meta span { display: flex; align-items: center; gap: 4px; }
+
+    .badge {
+      display: inline-block;
+      background: #1e1e1e;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      color: #aaa;
+    }
+
+    .badge.live { background: #1a2a1a; color: #4caf50; }
+
+    #nearby-list {
+      margin-top: 40px;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    #nearby-list h2 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    .nearby-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.1s;
+      margin-bottom: 4px;
+    }
+
+    .nearby-item:hover { background: #161616; }
+
+    .nearby-thumb {
+      width: 72px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 6px;
+      background: #222;
+      flex-shrink: 0;
+    }
+
+    .nearby-text { flex: 1; min-width: 0; }
+    .nearby-name { font-size: 0.9rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nearby-dist { font-size: 0.75rem; color: #666; margin-top: 2px; }
+
+    #refresh-btn {
+      display: none;
+      margin-top: 20px;
+      background: transparent;
+      border: 1px solid #333;
+      color: #aaa;
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    #refresh-btn:hover { border-color: #666; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <h1>London Selfie Cam</h1>
+  <p class="subtitle">Find the nearest TFL jam cam to you</p>
+
+  <button id="find-btn" onclick="findNearest()">📍 Find nearest cam</button>
+  <div id="status"></div>
+
+  <div id="result">
+    <img id="cam-img" src="" alt="Cam feed" />
+    <div class="cam-info">
+      <div class="cam-name" id="cam-name"></div>
+      <div class="cam-meta">
+        <span id="cam-dist"></span>
+        <span id="cam-view"></span>
+        <span id="cam-avail"></span>
+      </div>
+    </div>
+  </div>
+
+  <button id="refresh-btn" onclick="refreshImage()">↺ Refresh image</button>
+
+  <div id="nearby-list" style="display:none">
+    <h2>Also nearby</h2>
+    <div id="nearby-items"></div>
+  </div>
+
+  <script>
+    const TFL_URL = 'https://api.tfl.gov.uk/Place/Type/JamCam';
+    let allCams = [];
+    let currentCam = null;
+
+    function setStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function formatDist(km) {
+      return km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
+    }
+
+    function getProp(cam, key) {
+      const p = (cam.additionalProperties || []).find(p => p.key === key);
+      return p ? p.value : null;
+    }
+
+    function bustCache(url) {
+      return url + '?t=' + Date.now();
+    }
+
+    function showCam(cam) {
+      currentCam = cam;
+      const imageUrl = getProp(cam, 'imageUrl');
+      const view = getProp(cam, 'view');
+      const available = getProp(cam, 'available');
+
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('refresh-btn').style.display = 'inline-block';
+      document.getElementById('cam-img').src = bustCache(imageUrl);
+      document.getElementById('cam-name').textContent = cam.commonName;
+      document.getElementById('cam-dist').textContent = cam._dist ? formatDist(cam._dist) : '';
+      document.getElementById('cam-view').innerHTML = view ? `<span class="badge">${view}</span>` : '';
+      document.getElementById('cam-avail').innerHTML = available === 'true'
+        ? '<span class="badge live">● Live</span>'
+        : '<span class="badge">Unavailable</span>';
+    }
+
+    function showNearby(cams) {
+      const top = cams.slice(1, 6);
+      if (!top.length) return;
+      document.getElementById('nearby-list').style.display = 'block';
+      const container = document.getElementById('nearby-items');
+      container.innerHTML = '';
+      top.forEach(cam => {
+        const imageUrl = getProp(cam, 'imageUrl');
+        const div = document.createElement('div');
+        div.className = 'nearby-item';
+        div.innerHTML = `
+          <img class="nearby-thumb" src="${bustCache(imageUrl)}" alt="" loading="lazy" />
+          <div class="nearby-text">
+            <div class="nearby-name">${cam.commonName}</div>
+            <div class="nearby-dist">${formatDist(cam._dist)}</div>
+          </div>
+        `;
+        div.onclick = () => showCam(cam);
+        container.appendChild(div);
+      });
+    }
+
+    function refreshImage() {
+      if (!currentCam) return;
+      const imageUrl = getProp(currentCam, 'imageUrl');
+      document.getElementById('cam-img').src = bustCache(imageUrl);
+    }
+
+    async function findNearest() {
+      const btn = document.getElementById('find-btn');
+      btn.disabled = true;
+      setStatus('Getting your location…');
+
+      let userLat, userLon;
+      try {
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 })
+        );
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+      } catch (e) {
+        setStatus('Could not get location: ' + (e.message || 'permission denied'));
+        btn.disabled = false;
+        return;
+      }
+
+      setStatus('Fetching TFL jam cams…');
+      try {
+        if (!allCams.length) {
+          const res = await fetch(TFL_URL);
+          if (!res.ok) throw new Error('TFL API error ' + res.status);
+          allCams = await res.json();
+        }
+      } catch (e) {
+        setStatus('Failed to load TFL data: ' + e.message);
+        btn.disabled = false;
+        return;
+      }
+
+      const withDist = allCams
+        .filter(c => getProp(c, 'imageUrl') && getProp(c, 'available') === 'true')
+        .map(c => ({ ...c, _dist: haversineKm(userLat, userLon, c.lat, c.lon) }))
+        .sort((a, b) => a._dist - b._dist);
+
+      if (!withDist.length) {
+        setStatus('No available cams found.');
+        btn.disabled = false;
+        return;
+      }
+
+      setStatus('');
+      btn.textContent = '📍 Update location';
+      btn.disabled = false;
+
+      showCam(withDist[0]);
+      showNearby(withDist);
+    }
+  </script>
+</body>
+</html>
