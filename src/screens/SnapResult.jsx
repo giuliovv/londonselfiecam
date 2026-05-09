@@ -75,8 +75,10 @@ export function SnapResult({ snap, user, onDone, onShare }) {
   const [sharing, setSharing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pen, setPen] = useState('sharpie');
+  const [feedStatus, setFeedStatus] = useState('pending'); // pending | uploading | done | error
   const blobRef = useRef(null);
   const dataUrlRef = useRef(null);
+  const uploadedRef = useRef(false);
   const [ready, setReady] = useState(false);
 
   const d = snap.time instanceof Date ? snap.time : new Date(snap.time);
@@ -96,9 +98,7 @@ export function SnapResult({ snap, user, onDone, onShare }) {
     return () => clearTimeout(t);
   }, []);
 
-  // Regenerate polaroid whenever pen changes so the shared JPEG matches the preview.
-  // setReady resets `ready` for the new generation; lint rule allows this when
-  // the dependency change genuinely invalidates derived state.
+  // Regenerate polaroid whenever pen/note changes so the shared JPEG matches the preview.
   useEffect(() => {
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -111,7 +111,17 @@ export function SnapResult({ snap, user, onDone, onShare }) {
       setReady(true);
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [snap, pen, note]);
+  }, [snap, pen, note]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-upload to feed once on first successful generation
+  useEffect(() => {
+    if (!ready || !user || uploadedRef.current) return;
+    uploadedRef.current = true;
+    setFeedStatus('uploading');
+    uploadSnap(snap, blobRef.current, user)
+      .then(() => setFeedStatus('done'))
+      .catch(() => setFeedStatus('error'));
+  }, [ready, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleShare() {
     setSharing(true);
@@ -150,17 +160,13 @@ export function SnapResult({ snap, user, onDone, onShare }) {
       a.download = `londonselfiecam-${snap.cam.shortId}-${Date.now()}.jpg`;
       a.click();
 
-      // Persist to localStorage roll + upload to Firebase in parallel
-      const localSave = new Promise((resolve, reject) => {
+      // Persist to localStorage roll
+      await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => { saveSnap(snap, e.target.result); resolve(); };
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
-
-      const tasks = [localSave];
-      if (user) tasks.push(uploadSnap(snap, blob, user).catch(console.error));
-      await Promise.all(tasks);
 
       onDone?.();
     } catch {
@@ -209,6 +215,21 @@ export function SnapResult({ snap, user, onDone, onShare }) {
         }}
       >
         ◂ &nbsp;PRINTING&nbsp; ◂
+      </div>
+
+      <div
+        className="hud"
+        style={{
+          fontSize: 10,
+          letterSpacing: '0.18em',
+          marginTop: 4,
+          color: feedStatus === 'done' ? 'var(--acc-1)' : feedStatus === 'error' ? 'var(--rec)' : 'var(--ink-dim)',
+        }}
+      >
+        {feedStatus === 'pending' && ''}
+        {feedStatus === 'uploading' && '◌ POSTING TO FEED...'}
+        {feedStatus === 'done' && '▍ POSTED TO FEED'}
+        {feedStatus === 'error' && '✕ FEED UPLOAD FAILED'}
       </div>
 
       <div
