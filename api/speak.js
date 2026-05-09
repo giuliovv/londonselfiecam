@@ -2,13 +2,54 @@
 // POST { text: string, voice?: 'narrator' | 'vibe' | 'raspy' | <raw voiceId> }
 // → audio/mpeg bytes
 
+// Current ElevenLabs shared-library voice IDs (the older Adam/Bella/Sam IDs
+// have been deprecated for some accounts). If any of these still 404 for a
+// given account, we fall back to the user's first available voice below.
 const VOICE_PRESETS = {
-  narrator: 'pNInz6obpbAFm5rn0bom', // Adam — deep documentary
-  vibe:     'EXAVITQu4vr4xnSDxMAC', // Bella — bright, Y2K teen energy
-  raspy:    'yoZ06aMxZJJ28mfd3POQ', // Sam — character/grit
+  narrator: 'nPczCjzI2devNBz1zQrb', // Brian — deep documentary
+  vibe:     'pFZP5JQG7iQjIQuC4Bku', // Lily — bright young
+  raspy:    'cjVigY5qzO86Huf0OWal', // Eric — character/grit
 };
 
 const MAX_CHARS = 600; // hard cap so a stuck loop can't burn credits
+
+// Cached across warm invocations — avoid hitting /v1/voices every request.
+let cachedFallbackVoiceId = null;
+
+async function fetchFirstAvailableVoice(apiKey) {
+  if (cachedFallbackVoiceId) return cachedFallbackVoiceId;
+  try {
+    const r = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: { 'xi-api-key': apiKey, accept: 'application/json' },
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    const id = data.voices?.[0]?.voice_id || null;
+    if (id) cachedFallbackVoiceId = id;
+    return id;
+  } catch {
+    return null;
+  }
+}
+
+async function callTts(voiceId, apiKey, text) {
+  return fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+    {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        accept: 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_turbo_v2_5',
+        voice_settings: { stability: 0.45, similarity_boost: 0.75, style: 0.5 },
+      }),
+    },
+  );
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -32,22 +73,16 @@ export default async function handler(req, res) {
   const voiceId = VOICE_PRESETS[voice] || (typeof voice === 'string' && voice.length === 20 ? voice : VOICE_PRESETS.narrator);
 
   try {
-    const upstream = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-          accept: 'audio/mpeg',
-        },
-        body: JSON.stringify({
-          text: safeText,
-          model_id: 'eleven_turbo_v2_5',
-          voice_settings: { stability: 0.45, similarity_boost: 0.75, style: 0.5 },
-        }),
-      },
-    );
+    let upstream = await callTts(voiceId, apiKey, safeText);
+
+    // If the preset voice isn't on this account, fall back to the user's
+    // first available voice and retry once.
+    if (!upstream.ok && (upstream.status === 404 || upstream.status === 422 || upstream.status === 400)) {
+      const fallback = await fetchFirstAvailableVoice(apiKey);
+      if (fallback && fallback !== voiceId) {
+        upstream = await callTts(fallback, apiKey, safeText);
+      }
+    }
 
     if (!upstream.ok) {
       const errText = await upstream.text();
