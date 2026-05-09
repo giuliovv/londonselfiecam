@@ -45,6 +45,8 @@ export function CamViewer({ cam, onBack, onSnap, missionStop }) {
         style={{
           position: 'absolute',
           inset: 0,
+          display: 'flex',
+          alignItems: 'center',
           transform: `scale(${zoom})`,
           transformOrigin: 'center',
           transition: 'transform 0.4s ease',
