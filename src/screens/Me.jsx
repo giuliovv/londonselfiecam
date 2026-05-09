@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CamTile } from '../components/CamTile';
 import { QUESTS, FRIENDS } from '../data/london';
+import { loadSnaps, deleteSnap } from '../lib/snapStorage';
 
 function Stat({ label, v }) {
   return (
@@ -25,6 +26,11 @@ function Stat({ label, v }) {
 export function Me({ cams, onOpenCam }) {
   const [tab, setTab] = useState('quests');
   const me = FRIENDS.find((f) => f.you);
+  const [snaps, setSnaps] = useState(() => loadSnaps());
+
+  useEffect(() => {
+    if (tab === 'snaps') setSnaps(loadSnaps());
+  }, [tab]);
 
   return (
     <div
@@ -273,44 +279,92 @@ export function Me({ cams, onOpenCam }) {
               marginBottom: 10,
             }}
           >
-            YOUR ROLL · {me.snaps} FRAMES
+            YOUR ROLL · {snaps.length} FRAMES
           </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 4,
-            }}
-          >
-            {cams.slice(0, 9).map((c) => (
-              <div
-                key={c.id}
-                onClick={() => onOpenCam(c.id)}
-                style={{
-                  aspectRatio: '1/1',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  outline: '1px solid var(--line)',
-                  cursor: 'pointer',
-                }}
-              >
-                <CamTile cam={c} hideHud />
+          {snaps.length === 0 ? (
+            <div
+              className="hud"
+              style={{
+                fontSize: 11,
+                color: 'var(--ink-dim)',
+                letterSpacing: '0.15em',
+                textAlign: 'center',
+                marginTop: 40,
+              }}
+            >
+              NO SNAPS YET · HIT THE SHUTTER
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 4,
+              }}
+            >
+              {snaps.map((s) => (
                 <div
+                  key={s.id}
                   style={{
-                    position: 'absolute',
-                    left: 4,
-                    bottom: 4,
-                    fontFamily: 'var(--font-hud)',
-                    fontSize: 8,
-                    color: '#fff',
-                    textShadow: '0 0 3px #000',
+                    aspectRatio: '1/1',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    outline: '1px solid var(--line)',
+                    cursor: 'pointer',
+                    background: '#111',
+                  }}
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = s.dataUrl;
+                    a.download = `londonselfiecam-${s.shortId}.jpg`;
+                    a.click();
                   }}
                 >
-                  {c.shortId}
+                  <img
+                    src={s.dataUrl}
+                    alt={s.camName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'rgba(0,0,0,0.6)',
+                      padding: '2px 4px',
+                      fontFamily: 'var(--font-hud)',
+                      fontSize: 8,
+                      color: '#fff',
+                      letterSpacing: '0.08em',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span>{s.shortId}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteSnap(s.id);
+                        setSnaps(loadSnaps());
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--rec)',
+                        fontFamily: 'var(--font-hud)',
+                        fontSize: 8,
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
