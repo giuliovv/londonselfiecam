@@ -2,7 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { formatDate, formatTime } from '../hooks/useTickingTime';
 import { generatePolaroid } from '../lib/generatePolaroid';
 import { saveSnap } from '../lib/snapStorage';
-import { uploadSnap } from '../lib/firebaseFeed';
+import { uploadSnap, updateSnapAi } from '../lib/firebaseFeed';
+import { captionPolaroid, speak } from '../lib/aiClient';
+
+const PERSONAS = [
+  { id: 'sassy', label: 'sassy' },
+  { id: 'roast', label: 'roast' },
+  { id: 'compliment', label: 'nice' },
+];
+
+const VOICES = [
+  { id: 'narrator', label: 'narrator' },
+  { id: 'vibe', label: 'vibe' },
+  { id: 'raspy', label: 'raspy' },
+];
 
 const WEATHERS = [
   '14°C · OVERCAST',
@@ -77,10 +90,23 @@ export function SnapResult({ snap, user, onDone, onShare }) {
   const [saving, setSaving] = useState(false);
   const [pen, setPen] = useState('sharpie');
   const [feedStatus, setFeedStatus] = useState('pending'); // pending | uploading | done | error
+  const [snapDocId, setSnapDocId] = useState('');
   const blobRef = useRef(null);
   const dataUrlRef = useRef(null);
   const uploadedRef = useRef(false);
   const [ready, setReady] = useState(false);
+
+  // --- AI state ---
+  const [persona, setPersona] = useState('sassy');
+  const [voice, setVoice] = useState('narrator');
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [trivia, setTrivia] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [audioBusy, setAudioBusy] = useState(false);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const audioRef = useRef(null);
 
   const d = snap.time instanceof Date ? snap.time : new Date(snap.time);
   const hms = formatTime(d);
@@ -120,16 +146,97 @@ export function SnapResult({ snap, user, onDone, onShare }) {
     uploadedRef.current = true;
     setFeedStatus('uploading');
     uploadSnap(snap, blobRef.current, user)
-      .then(() => setFeedStatus('done'))
+      .then(({ id }) => {
+        setSnapDocId(id);
+        setFeedStatus('done');
+      })
       .catch(() => setFeedStatus('error'));
   }, [ready, user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Revoke any pending audio URL on unmount.
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
+
+  async function handleCaption() {
+    if (aiBusy) return;
+    setAiBusy(true);
+    setAiError('');
+    try {
+      const result = await captionPolaroid({
+        imageUrl: snap.cam.imageUrl,
+        persona,
+        camName: snap.cam.displayName,
+      });
+      if (result.caption) setNote(result.caption.slice(0, MAX_NOTE_LENGTH));
+      setTrivia(result.trivia || '');
+      setLandmark(result.landmark || '');
+      // Patch the AI metadata onto the existing snap doc (for the share view).
+      if (snapDocId) {
+        updateSnapAi(snapDocId, {
+          caption: result.caption,
+          persona,
+          voice,
+          landmark: result.landmark,
+          trivia: result.trivia,
+        });
+      }
+    } catch (e) {
+      setAiError(String(e.message || e).slice(0, 80));
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function handlePlay() {
+    if (audioBusy) return;
+    // If currently playing, pause.
+    if (audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause();
+      return;
+    }
+    // If already loaded for this voice/text, just resume.
+    if (audioUrl && audioRef.current) {
+      audioRef.current.play().catch(() => {});
+      return;
+    }
+    setAudioBusy(true);
+    setAiError('');
+    try {
+      const url = await speak({ text: note, voice });
+      setAudioUrl(url);
+      // Wait one frame for the <audio> src to update.
+      requestAnimationFrame(() => {
+        if (audioRef.current) audioRef.current.play().catch(() => {});
+      });
+    } catch (e) {
+      setAiError(String(e.message || e).slice(0, 80));
+    } finally {
+      setAudioBusy(false);
+    }
+  }
+
+  // When the user edits the note or changes voice, the cached audio is stale.
+  // Drop it so the next ▶ click regenerates.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAudioUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return '';
+    });
+    setAudioPlaying(false);
+  }, [note, voice]);
 
   async function handleShare() {
     setSharing(true);
     const blob = blobRef.current;
     const camName = (snap.cam.displayName || 'London cam').toUpperCase();
     const camId = snap.cam.shortId ? encodeURIComponent(snap.cam.shortId) : '';
-    const appLink = `${SITE_URL}/${camId ? `?cam=${camId}` : ''}`;
+    const appLink = snapDocId
+      ? `${SITE_URL}/?share=${snapDocId}`
+      : `${SITE_URL}/${camId ? `?cam=${camId}` : ''}`;
     const text = `Spotted on a TFL jam cam 📸 ${camName} · #LondonSelfieCam`;
 
     try {
@@ -366,6 +473,28 @@ export function SnapResult({ snap, user, onDone, onShare }) {
         />
       </div>
 
+      {(landmark || trivia) && (
+        <div
+          className="mt-3"
+          style={{
+            width: '100%',
+            maxWidth: 320,
+            background: 'rgba(255, 174, 0, 0.08)',
+            border: '1px solid rgba(255, 174, 0, 0.35)',
+            color: '#ffd58a',
+            fontFamily: 'var(--font-hud)',
+            fontSize: 10,
+            letterSpacing: '0.05em',
+            padding: '8px 10px',
+            lineHeight: 1.4,
+          }}
+        >
+          {landmark && <strong style={{ color: '#ffae00' }}>📍 {landmark.toUpperCase()}</strong>}
+          {landmark && trivia && ' · '}
+          {trivia}
+        </div>
+      )}
+
       <div
         className="row gap-2 mt-4"
         style={{
@@ -405,6 +534,129 @@ export function SnapResult({ snap, user, onDone, onShare }) {
           </button>
         ))}
       </div>
+
+      <div
+        className="row gap-2 mt-2"
+        style={{
+          width: '100%',
+          maxWidth: 320,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <span
+          style={{
+            fontFamily: 'var(--font-hud)',
+            fontSize: 10,
+            color: 'var(--ink-dim)',
+            letterSpacing: '0.2em',
+            marginRight: 4,
+          }}
+        >
+          TONE
+        </span>
+        {PERSONAS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPersona(p.id)}
+            className="chip"
+            style={{
+              background: persona === p.id ? 'var(--ink)' : 'transparent',
+              color: persona === p.id ? 'var(--bg)' : 'var(--ink)',
+              fontSize: 10,
+              padding: '4px 10px',
+              letterSpacing: 0,
+              textTransform: 'lowercase',
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div
+        className="row gap-2 mt-2"
+        style={{
+          width: '100%',
+          maxWidth: 320,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <span
+          style={{
+            fontFamily: 'var(--font-hud)',
+            fontSize: 10,
+            color: 'var(--ink-dim)',
+            letterSpacing: '0.2em',
+            marginRight: 4,
+          }}
+        >
+          VOICE
+        </span>
+        {VOICES.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => setVoice(v.id)}
+            className="chip"
+            style={{
+              background: voice === v.id ? 'var(--ink)' : 'transparent',
+              color: voice === v.id ? 'var(--bg)' : 'var(--ink)',
+              fontSize: 10,
+              padding: '4px 10px',
+              letterSpacing: 0,
+              textTransform: 'lowercase',
+            }}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="row gap-2 mt-3" style={{ width: '100%', maxWidth: 320 }}>
+        <button
+          onClick={handleCaption}
+          disabled={aiBusy || !ready}
+          className="chip"
+          style={{ flex: 1, padding: 10, justifyContent: 'center', fontSize: 11 }}
+        >
+          {aiBusy ? '...thinking' : '✨ CAPTION'}
+        </button>
+        <button
+          onClick={handlePlay}
+          disabled={audioBusy || !note}
+          className="chip"
+          style={{ flex: 1, padding: 10, justifyContent: 'center', fontSize: 11 }}
+        >
+          {audioBusy ? '...generating' : audioPlaying ? '◼ PAUSE' : '▶ LISTEN'}
+        </button>
+      </div>
+
+      {aiError && (
+        <div
+          className="mt-2"
+          style={{
+            width: '100%',
+            maxWidth: 320,
+            color: 'var(--rec, #ff5252)',
+            fontFamily: 'var(--font-hud)',
+            fontSize: 10,
+            letterSpacing: '0.1em',
+            textAlign: 'center',
+          }}
+        >
+          ✕ {aiError}
+        </div>
+      )}
+
+      <audio
+        ref={audioRef}
+        src={audioUrl || undefined}
+        onPlay={() => setAudioPlaying(true)}
+        onPause={() => setAudioPlaying(false)}
+        onEnded={() => setAudioPlaying(false)}
+        style={{ display: 'none' }}
+      />
 
       <div className="row gap-3 mt-3" style={{ width: '100%', maxWidth: 320 }}>
         <button

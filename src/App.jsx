@@ -14,6 +14,7 @@ import { SnapResult } from './screens/SnapResult';
 import { Planner } from './screens/Planner';
 import { Feed } from './screens/Feed';
 import { Me } from './screens/Me';
+import { SharedView } from './screens/SharedView';
 
 export default function App() {
   const { cams, loading, error, byId, nearestTo } = useTflCams();
@@ -25,6 +26,18 @@ export default function App() {
   const [openCamId, setOpenCamId] = useState(null);
   const [snap, setSnap] = useState(null);
   const [activeRoute, setActiveRoute] = useState(null);
+
+  // ?share=<docId> → render the SharedView (recipient page with TTS playback)
+  const [shareId, setShareId] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return new URLSearchParams(window.location.search).get('share') || '';
+  });
+  const closeShare = () => {
+    setShareId('');
+    const url = new URL(window.location.href);
+    url.searchParams.delete('share');
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+  };
 
   // Auto-request geolocation once on mount so cams can sort by proximity
   useEffect(() => {
@@ -69,6 +82,17 @@ export default function App() {
   const camForViewer = openCamId
     ? byId(openCamId) || sortedCams.find((c) => c.id === openCamId) || sortedCams[0]
     : null;
+
+  if (shareId) {
+    return (
+      <div className="app-shell">
+        <div className="phone">
+          <SharedView shareId={shareId} onClose={closeShare} />
+        </div>
+        <DesktopSidekick />
+      </div>
+    );
+  }
 
   if (openCamId) {
     return (
