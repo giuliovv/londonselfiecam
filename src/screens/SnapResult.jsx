@@ -65,22 +65,20 @@ export function SnapResult({ snap, onDone, onShare }) {
   async function handleShare() {
     setSharing(true);
     const blob = blobRef.current;
-    const text = `Spotted on a TFL jam cam 📸 ${snap.cam.displayName.toUpperCase()} · #LondonSelfieCam`;
-    const imgUrl = snap.cam.imageUrl
-      ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
-      : window.location.href;
+    const camName = (snap.cam.displayName || 'London cam').toUpperCase();
+    const camId = snap.cam.shortId ? encodeURIComponent(snap.cam.shortId) : '';
+    const appLink = `${window.location.origin}/${camId ? `?cam=${camId}` : ''}`;
+    // Link embedded in text — iOS WhatsApp drops `url` when files are present.
+    const text = `Spotted on a TFL jam cam 📸 ${camName} · #LondonSelfieCam\n${appLink}`;
 
     try {
       if (CAN_SHARE_FILES && blob) {
-        // One call: file share
         const file = new File([blob], 'londonselfiecam.jpg', { type: 'image/jpeg' });
-        await navigator.share({ files: [file], title: 'London Selfie Cam', text });
+        await navigator.share({ files: [file], title: 'London Selfie Cam', text, url: appLink });
       } else if (CAN_SHARE) {
-        // One call: URL share
-        await navigator.share({ title: 'London Selfie Cam', text, url: imgUrl });
+        await navigator.share({ title: 'London Selfie Cam', text, url: appLink });
       } else {
-        // Clipboard copy
-        await navigator.clipboard.writeText(`${text}\n${imgUrl}`);
+        await navigator.clipboard.writeText(text);
       }
     } catch (e) {
       if (e.name !== 'AbortError') console.warn('Share failed:', e);
