@@ -57,9 +57,26 @@ export function SharedView({ shareId, onClose }) {
     try {
       const url = await speak({ text, voice });
       setAudioUrl(url);
-      requestAnimationFrame(() => {
-        if (audioRef.current) audioRef.current.play().catch(() => {});
+      // Wait until the audio is fully buffered before playing — otherwise
+      // iOS Safari clips the first ~200ms ("words clipped").
+      await new Promise((resolve) => {
+        const audio = audioRef.current;
+        if (!audio) return resolve();
+        audio.src = url;
+        audio.preload = 'auto';
+        audio.load();
+        if (audio.readyState >= 3) return resolve();
+        const onReady = () => {
+          audio.removeEventListener('canplaythrough', onReady);
+          resolve();
+        };
+        audio.addEventListener('canplaythrough', onReady, { once: true });
+        setTimeout(() => {
+          audio.removeEventListener('canplaythrough', onReady);
+          resolve();
+        }, 3000);
       });
+      if (audioRef.current) await audioRef.current.play().catch(() => {});
     } catch (e) {
       setError(String(e.message || e).slice(0, 80));
     } finally {
@@ -223,6 +240,7 @@ export function SharedView({ shareId, onClose }) {
           <audio
             ref={audioRef}
             src={audioUrl || undefined}
+            preload="auto"
             onPlay={() => setAudioPlaying(true)}
             onPause={() => setAudioPlaying(false)}
             onEnded={() => setAudioPlaying(false)}

@@ -207,10 +207,28 @@ export function SnapResult({ snap, user, onDone, onShare }) {
     try {
       const url = await speak({ text: note, voice });
       setAudioUrl(url);
-      // Wait one frame for the <audio> src to update.
-      requestAnimationFrame(() => {
-        if (audioRef.current) audioRef.current.play().catch(() => {});
+      // Wait for the audio to actually be playable end-to-end before we hit
+      // play(). Without this, iOS Safari (and sometimes Chrome) drops the
+      // first ~200ms of audio, which sounds like clipped first words.
+      await new Promise((resolve) => {
+        const audio = audioRef.current;
+        if (!audio) return resolve();
+        audio.src = url;
+        audio.preload = 'auto';
+        audio.load();
+        if (audio.readyState >= 3) return resolve();
+        const onReady = () => {
+          audio.removeEventListener('canplaythrough', onReady);
+          resolve();
+        };
+        audio.addEventListener('canplaythrough', onReady, { once: true });
+        // Safety net so a stuck load can't hang the UI.
+        setTimeout(() => {
+          audio.removeEventListener('canplaythrough', onReady);
+          resolve();
+        }, 3000);
       });
+      if (audioRef.current) await audioRef.current.play().catch(() => {});
     } catch (e) {
       setAiError(String(e.message || e).slice(0, 80));
     } finally {
@@ -652,6 +670,7 @@ export function SnapResult({ snap, user, onDone, onShare }) {
       <audio
         ref={audioRef}
         src={audioUrl || undefined}
+        preload="auto"
         onPlay={() => setAudioPlaying(true)}
         onPause={() => setAudioPlaying(false)}
         onEnded={() => setAudioPlaying(false)}
