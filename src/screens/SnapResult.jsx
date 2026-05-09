@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatDate, formatTime } from '../hooks/useTickingTime';
+import { generatePolaroid } from '../lib/generatePolaroid';
+import { saveSnap } from '../lib/snapStorage';
 
 const WEATHERS = [
   '14°C · OVERCAST',
@@ -17,77 +19,111 @@ const FILTERS = {
   vhs: 'saturate(1.4) contrast(1.1) hue-rotate(-10deg)',
 };
 
-function drawToBlob(url) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      try {
-        canvas.toBlob((b) => (b ? resolve(b) : reject()), 'image/jpeg', 0.92);
-      } catch {
-        reject();
-      }
-    };
-    img.onerror = reject;
-    img.src = url;
-  });
-}
-
 export function SnapResult({ snap, onDone, onShare }) {
   const [printed, setPrinted] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // polaroidBlob is generated once on mount; dataUrl derived from it
+  const blobRef = useRef(null);
+  const dataUrlRef = useRef(null);
+  const [ready, setReady] = useState(false);
 
-  async function handleShare() {
-    setSharing(true);
-    const imgUrl = snap.cam.imageUrl
-      ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
-      : null;
-    const text = `Spotted on a TFL jam cam 📸 ${snap.cam.displayName.toUpperCase()} · #LondonSelfieCam`;
-
-    try {
-      if (navigator.share) {
-        // Try to get image blob via canvas (works if TFL S3 sends CORS headers)
-        const blob = imgUrl ? await drawToBlob(imgUrl) : null;
-        if (blob) {
-          const file = new File([blob], 'londonselfiecam.jpg', { type: 'image/jpeg' });
-          if (navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ files: [file], title: 'London Selfie Cam', text });
-            onShare?.();
-            return;
-          }
-        }
-        // Fall back: share cam image URL directly — shows image preview in WhatsApp/iMessage
-        await navigator.share({ title: 'London Selfie Cam', text, url: imgUrl || window.location.href });
-        onShare?.();
-      } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(`${text}\n${imgUrl || window.location.href}`);
-        onShare?.();
-      }
-    } catch {
-      onShare?.();
-    } finally {
-      setSharing(false);
-    }
-  }
+  const d = snap.time instanceof Date ? snap.time : new Date(snap.time);
+  const hms = formatTime(d);
+  const dateStr = formatDate(d);
+  const weather = WEATHERS[(snap.cam.shortId || 'JC').length % WEATHERS.length];
+  const printNo = String((snap.frozenAt || Date.now()) % 999).padStart(3, '0');
+  const frozenSrc = snap.cam.imageUrl
+    ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
+    : null;
+  const filterCss = FILTERS[snap.filter] || 'none';
 
   useEffect(() => {
     const t = setTimeout(() => setPrinted(true), 250);
     return () => clearTimeout(t);
   }, []);
 
-  const d = snap.time instanceof Date ? snap.time : new Date(snap.time);
-  const hms = formatTime(d);
-  const dateStr = formatDate(d);
-  const weather = WEATHERS[(snap.cam.shortId || 'JC').length % WEATHERS.length];
-  const printNo = String(Math.floor(Math.random() * 999)).padStart(3, '0');
-  const frozenSrc = snap.cam.imageUrl
-    ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
-    : null;
-  const filterCss = FILTERS[snap.filter] || 'none';
+  // Generate polaroid in background as soon as component mounts
+  useEffect(() => {
+    let cancelled = false;
+    generatePolaroid(snap).then((blob) => {
+      if (cancelled) return;
+      blobRef.current = blob;
+      const url = URL.createObjectURL(blob);
+      dataUrlRef.current = url;
+      setReady(true);
+    }).catch(() => setReady(false));
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleShare() {
+    setSharing(true);
+    const blob = blobRef.current;
+    const text = `Spotted on a TFL jam cam 📸 ${snap.cam.displayName.toUpperCase()} · #LondonSelfieCam`;
+    const imgUrl = snap.cam.imageUrl
+      ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
+      : window.location.href;
+
+    // Attempt 1: file share
+    if (navigator.share && blob) {
+      try {
+        const file = new File([blob], 'londonselfiecam.jpg', { type: 'image/jpeg' });
+        await navigator.share({ files: [file], title: 'London Selfie Cam', text });
+        setSharing(false);
+        return; // success — stay on screen, let user exit themselves
+      } catch (e) {
+        if (e.name === 'AbortError') { setSharing(false); return; } // user cancelled
+        // file sharing unsupported — fall through
+      }
+    }
+
+    // Attempt 2: URL share
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'London Selfie Cam', text, url: imgUrl });
+        setSharing(false);
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') { setSharing(false); return; }
+        // unsupported — fall through
+      }
+    }
+
+    // Attempt 3: clipboard
+    try {
+      await navigator.clipboard.writeText(`${text}\n${imgUrl}`);
+    } catch { /* silent */ }
+
+    setSharing(false);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const blob = blobRef.current;
+      if (!blob) { onDone?.(); return; }
+
+      // Download to device
+      const url = dataUrlRef.current || URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `londonselfiecam-${snap.cam.shortId}-${Date.now()}.jpg`;
+      a.click();
+
+      // Persist to localStorage roll
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        saveSnap(snap, e.target.result);
+        onDone?.();
+      };
+      reader.onerror = () => onDone?.();
+      reader.readAsDataURL(blob);
+    } catch {
+      onDone?.();
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div
@@ -134,7 +170,6 @@ export function SnapResult({ snap, onDone, onShare }) {
           )}
           <div className="cam-scanlines" />
 
-          {/* cam label */}
           <div
             style={{
               position: 'absolute',
@@ -156,7 +191,6 @@ export function SnapResult({ snap, onDone, onShare }) {
             {snap.cam.displayName.toUpperCase()}
           </div>
 
-          {/* weather */}
           <div
             style={{
               position: 'absolute',
@@ -173,7 +207,6 @@ export function SnapResult({ snap, onDone, onShare }) {
             {weather}
           </div>
 
-          {/* date stamp */}
           <div
             style={{
               position: 'absolute',
@@ -192,7 +225,6 @@ export function SnapResult({ snap, onDone, onShare }) {
             <span style={{ fontSize: 12 }}>{hms}</span>
           </div>
 
-          {/* watermark */}
           <div
             style={{
               position: 'absolute',
@@ -248,11 +280,12 @@ export function SnapResult({ snap, onDone, onShare }) {
           {sharing ? '...' : '↗ SHARE'}
         </button>
         <button
-          onClick={onDone}
+          onClick={handleSave}
+          disabled={saving || !ready}
           className="chip"
           style={{ flex: 1, padding: 14, justifyContent: 'center' }}
         >
-          SAVE & EXIT
+          {saving ? '...' : ready ? '↓ SAVE' : '◌ DEVELOPING'}
         </button>
       </div>
     </div>
