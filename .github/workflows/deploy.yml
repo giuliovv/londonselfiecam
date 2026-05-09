@@ -35,3 +35,7 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id EOLFCKR7OSWQB \
             --paths "/*"
+
+      - name: Cleanup workspace
+        if: always()
+        run: rm -rf node_modules dist

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { QUESTS, FRIENDS } from '../data/london';
 import { loadSnaps, deleteSnap } from '../lib/snapStorage';
+import { upgradeToGoogle, getDisplayName } from '../lib/auth';
 
 function computeStats(snaps) {
   const count = snaps.length;
@@ -51,11 +52,23 @@ function Stat({ label, v }) {
   );
 }
 
-export function Me({ cams, onOpenCam }) {
+export function Me({ cams, onOpenCam, user }) {
   const [tab, setTab] = useState('quests');
   const me = FRIENDS.find((f) => f.you);
   const [snaps, setSnaps] = useState(() => loadSnaps());
+  const [signingIn, setSigningIn] = useState(false);
   const stats = computeStats(snaps);
+
+  async function handleGoogleSignIn() {
+    setSigningIn(true);
+    try {
+      await upgradeToGoogle();
+    } catch (e) {
+      console.error('Google sign-in failed:', e);
+    } finally {
+      setSigningIn(false);
+    }
+  }
 
   useEffect(() => {
     const updated = loadSnaps();
@@ -87,18 +100,24 @@ export function Me({ cams, onOpenCam }) {
               className="h-display"
               style={{ fontSize: 30, color: 'var(--ink)' }}
             >
-              @you
+              {user ? getDisplayName(user).toUpperCase() : '@YOU'}
             </div>
             <div
               className="hud"
-              style={{
-                fontSize: 11,
-                color: 'var(--ink-dim)',
-                marginTop: 4,
-              }}
+              style={{ fontSize: 11, color: 'var(--ink-dim)', marginTop: 4 }}
             >
               {stats.joined ? `JOINED ${stats.joined} · ` : ''}LEVEL {String(stats.level).padStart(2, '0')}
             </div>
+            {user?.isAnonymous && (
+              <button
+                onClick={handleGoogleSignIn}
+                disabled={signingIn}
+                className="chip"
+                style={{ marginTop: 8, fontSize: 10, padding: '4px 10px' }}
+              >
+                {signingIn ? '...' : 'G · SIGN IN WITH GOOGLE'}
+              </button>
+            )}
           </div>
           <div
             style={{

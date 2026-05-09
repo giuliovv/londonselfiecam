@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { formatDate, formatTime } from '../hooks/useTickingTime';
 import { generatePolaroid } from '../lib/generatePolaroid';
 import { saveSnap } from '../lib/snapStorage';
+import { uploadSnap } from '../lib/firebaseFeed';
 
 const WEATHERS = [
   '14°C · OVERCAST',
@@ -69,7 +70,7 @@ const CAN_SHARE_FILES =
   navigator.canShare({ files: [new File([''], 'x.jpg', { type: 'image/jpeg' })] });
 const CAN_SHARE = typeof navigator.share === 'function';
 
-export function SnapResult({ snap, onDone, onShare }) {
+export function SnapResult({ snap, user, onDone, onShare }) {
   const [printed, setPrinted] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -142,21 +143,26 @@ export function SnapResult({ snap, onDone, onShare }) {
       const blob = blobRef.current;
       if (!blob) { onDone?.(); return; }
 
-      // Download to device
+      // Download to device immediately
       const url = dataUrlRef.current || URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `londonselfiecam-${snap.cam.shortId}-${Date.now()}.jpg`;
       a.click();
 
-      // Persist to localStorage roll
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        saveSnap(snap, e.target.result);
-        onDone?.();
-      };
-      reader.onerror = () => onDone?.();
-      reader.readAsDataURL(blob);
+      // Persist to localStorage roll + upload to Firebase in parallel
+      const localSave = new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => { saveSnap(snap, e.target.result); resolve(); };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      const tasks = [localSave];
+      if (user) tasks.push(uploadSnap(snap, blob, user).catch(console.error));
+      await Promise.all(tasks);
+
+      onDone?.();
     } catch {
       onDone?.();
     } finally {

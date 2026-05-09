@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import './styles.css';
 import { useTflCams } from './hooks/useTflCams';
 import { useGeolocation } from './hooks/useGeolocation';
+import { useAuth } from './hooks/useAuth';
 import { Splash } from './components/Splash';
 import { Statusbar } from './components/Statusbar';
 import { Tabbar } from './components/Tabbar';
@@ -17,6 +18,7 @@ import { Me } from './screens/Me';
 export default function App() {
   const { cams, loading, error, byId, nearestTo } = useTflCams();
   const geo = useGeolocation();
+  const user = useAuth();
 
   const [splash, setSplash] = useState(true);
   const [tab, setTab] = useState('live');
@@ -75,6 +77,7 @@ export default function App() {
           <Splash show={splash} camCount={cams.length} />
           <CamViewer cam={camForViewer} onBack={closeCam} onSnap={onSnap} />
         </div>
+
         <DesktopSidekick />
       </div>
     );
@@ -85,6 +88,7 @@ export default function App() {
         <div className="phone">
           <SnapResult
             snap={snap}
+            user={user}
             onDone={() => setSnap(null)}
             onShare={() => setSnap(null)}
           />
@@ -128,7 +132,7 @@ export default function App() {
               onSnap={onSnap}
             />
           )}
-          {tab === 'me' && <Me cams={sortedCams} onOpenCam={openCam} />}
+          {tab === 'me' && <Me cams={sortedCams} onOpenCam={openCam} user={user} />}
         </div>
 
         <button
