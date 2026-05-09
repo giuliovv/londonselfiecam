@@ -22,11 +22,10 @@ function toGeoJSON(cams, selectedId) {
   };
 }
 
-export function MapView({ cams, sponsors, onPick, onPickSponsor, selected, userLoc }) {
+export function MapView({ cams, onPick, selected, userLoc }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const userMarkerRef = useRef(null);
-  const sponsorMarkersRef = useRef([]);
   const readyRef = useRef(false);
 
   // Init map once
@@ -126,39 +125,6 @@ export function MapView({ cams, sponsors, onPick, onPickSponsor, selected, userL
     const go = () => map.easeTo({ center: [cam.lng, cam.lat], zoom: Math.max(map.getZoom(), 14), duration: 400 });
     if (readyRef.current) go(); else map.once('_ready', go);
   }, [selected, cams]);
-
-  // Sponsored ad pins (HTML markers, distinct from cam circle pins)
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    sponsorMarkersRef.current.forEach((m) => m.remove());
-    sponsorMarkersRef.current = [];
-    if (!sponsors || !sponsors.length) return;
-
-    const add = () => {
-      sponsors.forEach((s) => {
-        const el = document.createElement('div');
-        el.className = 'sponsor-marker';
-        el.style.setProperty('--sp-color', s.color || '#ffae00');
-        el.innerHTML =
-          '<div class="sponsor-marker-inner">' +
-          '<span class="sponsor-marker-tag">AD</span>' +
-          '<span class="sponsor-marker-name"></span>' +
-          '</div>';
-        el.querySelector('.sponsor-marker-name').textContent = s.name;
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (onPickSponsor) onPickSponsor(s.id);
-        });
-        const m = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-          .setLngLat([s.lng, s.lat])
-          .addTo(map);
-        sponsorMarkersRef.current.push(m);
-      });
-    };
-    if (readyRef.current) add(); else map.once('_ready', add);
-  }, [sponsors]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // User location blue dot
   useEffect(() => {

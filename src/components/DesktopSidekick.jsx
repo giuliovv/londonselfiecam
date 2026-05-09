@@ -13,29 +13,6 @@ const PROTOCOL_STEPS = [
   ['SHARE', 'Share to social or collect more cameras across the city.'],
 ];
 
-const REVENUE_STREAMS = [
-  {
-    title: 'SPONSORED PINS',
-    rate: 'CPM / CPC',
-    desc: 'Brands pay for live, geo-targeted placement on the map.',
-  },
-  {
-    title: 'SNAP BILLBOARDS',
-    rate: 'CPM',
-    desc: 'Disclosed virtual brand wall on every shared photo.',
-  },
-  {
-    title: 'CAM TAKEOVERS',
-    rate: '£ / DAY',
-    desc: 'A brand owns a TfL cam: branded HUD, frame and CTA.',
-  },
-  {
-    title: 'PRO TIER',
-    rate: '£4.99 / MO',
-    desc: 'Ad-free, premium pens, unlimited London Photo Book.',
-  },
-];
-
 export function DesktopSidekick() {
   return (
     <aside className="desktop-sidekick" aria-label="Open on phone">
@@ -95,35 +72,6 @@ export function DesktopSidekick() {
             </li>
           ))}
         </ol>
-      </section>
-
-      <section className="sidekick-revenue" aria-label="Monetization model">
-        <header className="sidekick-revenue-header">
-          <span className="sidekick-revenue-tag">
-            <span className="green-dot" aria-hidden="true" />
-            REVENUE
-          </span>
-          <span className="sidekick-revenue-count">04 STREAMS</span>
-        </header>
-        <ol className="sidekick-revenue-list">
-          {REVENUE_STREAMS.map((s, i) => (
-            <li key={s.title} className="sidekick-revenue-item">
-              <span className="sidekick-revenue-num">
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <span className="sidekick-revenue-body">
-                <span className="sidekick-revenue-row">
-                  <span className="sidekick-revenue-title">{s.title}</span>
-                  <span className="sidekick-revenue-rate">{s.rate}</span>
-                </span>
-                <span className="sidekick-revenue-desc">{s.desc}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-        <div className="sidekick-revenue-tldr">
-          ▌ EVERY CAM = A NEW BILLBOARD
-        </div>
       </section>
 
       <div className="sidekick-scroll-nudge" aria-hidden="true">
