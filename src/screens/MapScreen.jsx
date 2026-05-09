@@ -176,7 +176,7 @@ export function MapScreen({ cams, onOpenCam, userLoc }) {
             position: 'absolute',
             left: 12,
             right: 12,
-            bottom: 100,
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)',
             zIndex: 80,
             background: 'var(--bg)',
             border: '1px solid var(--line)',
