@@ -682,6 +682,14 @@
   }
 }
 
+@keyframes wave {
+  0%   { transform: rotate(0deg); }
+  20%  { transform: rotate(-20deg); }
+  50%  { transform: rotate(20deg); }
+  80%  { transform: rotate(-10deg); }
+  100% { transform: rotate(0deg); }
+}
+
 /* timeline rail */
 .rail {
   position: relative;

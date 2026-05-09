@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CamTile } from '../components/CamTile';
 import { Scanlines, Grain, Vignette, Brackets } from '../components/Overlays';
 import { useTickingTime } from '../hooks/useTickingTime';
@@ -11,12 +11,39 @@ const FILTERS = {
   vhs: { filter: 'saturate(1.4) contrast(1.1) hue-rotate(-10deg)' },
 };
 
+const VIDEO_REFRESH_MS = 75_000;
+
 export function CamViewer({ cam, onBack, onSnap, missionStop }) {
   const time = useTickingTime();
   const [zoom, setZoom] = useState(1);
   const [filter, setFilter] = useState('normal');
   const [snapping, setSnapping] = useState(false);
   const [whiteFlash, setWhiteFlash] = useState(false);
+  const [waving, setWaving] = useState(false);
+  const [countdown, setCountdown] = useState(VIDEO_REFRESH_MS / 1000);
+  const countdownRef = useRef(null);
+
+  const resetCountdown = () => {
+    setCountdown(VIDEO_REFRESH_MS / 1000);
+  };
+
+  useEffect(() => {
+    setCountdown(VIDEO_REFRESH_MS / 1000);
+    countdownRef.current = setInterval(() => {
+      setCountdown((s) => {
+        if (s <= 1) return VIDEO_REFRESH_MS / 1000;
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(countdownRef.current);
+  }, [cam?.id]);
+
+  const sayHi = () => {
+    if (waving) return;
+    setWaving(true);
+    if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+    setTimeout(() => setWaving(false), 2000);
+  };
 
   if (!cam) {
     return (
@@ -73,6 +100,27 @@ export function CamViewer({ cam, onBack, onSnap, missionStop }) {
         />
       )}
 
+      {waving && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 190,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            animation: 'shutter 2s ease forwards',
+          }}
+        >
+          <div style={{ fontSize: 72, animation: 'wave 0.5s ease 3' }}>👋</div>
+          <div className="hud" style={{ fontSize: 13, color: '#fff', letterSpacing: '0.2em', marginTop: 8, textShadow: '0 0 12px rgba(0,0,0,0.8)' }}>
+            HI LONDON!
+          </div>
+        </div>
+      )}
+
       {/* TOP HUD */}
       <div
         style={{
@@ -96,6 +144,9 @@ export function CamViewer({ cam, onBack, onSnap, missionStop }) {
             &nbsp;LIVE
           </span>
           <span className="chip">{time}</span>
+          <span className="chip" style={{ color: countdown <= 10 ? 'var(--rec)' : 'var(--ink-dim)', fontSize: 10 }}>
+            ↻ {countdown}s
+          </span>
         </div>
         <div className="tape-edge mt-2" />
         <div
@@ -212,13 +263,22 @@ export function CamViewer({ cam, onBack, onSnap, missionStop }) {
         </div>
 
         <div className="row between" style={{ alignItems: 'center' }}>
-          <div
-            className="hud"
-            style={{ fontSize: 10, color: 'var(--ink-dim)' }}
-          >
-            ISO 800
-            <br />
-            F2.8 · 1/60
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+            <div
+              className="hud"
+              style={{ fontSize: 10, color: 'var(--ink-dim)' }}
+            >
+              ISO 800
+              <br />
+              F2.8 · 1/60
+            </div>
+            <button
+              onClick={sayHi}
+              className="chip"
+              style={{ fontSize: 11, padding: '5px 10px', opacity: waving ? 0.5 : 1 }}
+            >
+              👋 SAY HI
+            </button>
           </div>
           <button
             onClick={doSnap}
