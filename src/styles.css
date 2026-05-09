@@ -304,6 +304,37 @@
   padding-top: 2px;
 }
 
+.sidekick-scroll-nudge {
+  position: sticky;
+  bottom: 0;
+  align-self: stretch;
+  text-align: center;
+  font-family: var(--font-hud);
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--ink-dim);
+  padding: 10px 0 8px;
+  background: linear-gradient(to bottom, transparent, var(--bg) 60%);
+  animation: nudge-bob 2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes nudge-bob {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50%       { transform: translateY(3px); opacity: 1; }
+}
+
+.sidekick-qr-title {
+  font-family: var(--font-display);
+  font-size: 54px;
+  line-height: 0.86;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--ink);
+}
+.sidekick-qr-title .accent {
+  color: var(--rec);
+}
+
 .sidekick-foot {
   display: flex;
   flex-direction: column;

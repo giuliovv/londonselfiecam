@@ -14,11 +14,11 @@ export function DesktopSidekick() {
       <div className="sidekick-divider" aria-hidden="true" />
 
       <h2 className="sidekick-title h-display glitch">
-        POINT
+        LONDON
         <br />
-        YOUR
+        SELFIE
         <br />
-        PHONE<span className="accent">.</span>
+        CAM<span className="accent">.</span>
       </h2>
 
       <p className="sidekick-copy">
@@ -47,6 +47,18 @@ export function DesktopSidekick() {
           REAL SNAP · REGENT ST / CONDUIT ST · JC451
         </div>
       </div>
+
+      <div className="sidekick-scroll-nudge" aria-hidden="true">
+        ↓ SCROLL
+      </div>
+
+      <h3 className="sidekick-qr-title">
+        POINT
+        <br />
+        YOUR
+        <br />
+        PHONE<span className="accent">.</span>
+      </h3>
 
       <div className="sidekick-qr">
         <div className="sidekick-qr-header">
