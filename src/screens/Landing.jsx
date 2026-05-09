@@ -164,16 +164,6 @@ export function Landing({ cams, onEnter, onPickCam, onOpenStream }) {
           >
             ▶ &nbsp; TAP IN
           </button>
-          <div
-            className="hud center mt-2"
-            style={{
-              fontSize: 10,
-              letterSpacing: '0.2em',
-              color: 'var(--ink-dim)',
-            }}
-          >
-            18+ · NO FACES STORED · CCTV ART
-          </div>
         </div>
       </div>
     </div>
