@@ -1,7 +1,7 @@
 import { QRCodeSVG } from 'qrcode.react';
 
-const MOBILE_URL = 'https://d2bx7f2chgqsy.cloudfront.net/';
-const URL_LABEL = 'd2bx7f2chgqsy.cloudfront.net';
+const MOBILE_URL = 'https://londonselfiecam-virid.vercel.app/';
+const URL_LABEL = 'londonselfiecam-virid.vercel.app';
 
 export function DesktopSidekick() {
   return (
