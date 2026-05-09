@@ -19,6 +19,12 @@ const FILTERS = {
   vhs: 'saturate(1.4) contrast(1.1) hue-rotate(-10deg)',
 };
 
+// Detect once at module load — no user gesture needed for canShare
+const CAN_SHARE_FILES =
+  typeof navigator.canShare === 'function' &&
+  navigator.canShare({ files: [new File([''], 'x.jpg', { type: 'image/jpeg' })] });
+const CAN_SHARE = typeof navigator.share === 'function';
+
 export function SnapResult({ snap, onDone, onShare }) {
   const [printed, setPrinted] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -64,37 +70,23 @@ export function SnapResult({ snap, onDone, onShare }) {
       ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
       : window.location.href;
 
-    // Attempt 1: file share
-    if (navigator.share && blob) {
-      try {
+    try {
+      if (CAN_SHARE_FILES && blob) {
+        // One call: file share
         const file = new File([blob], 'londonselfiecam.jpg', { type: 'image/jpeg' });
         await navigator.share({ files: [file], title: 'London Selfie Cam', text });
-        setSharing(false);
-        return; // success — stay on screen, let user exit themselves
-      } catch (e) {
-        if (e.name === 'AbortError') { setSharing(false); return; } // user cancelled
-        // file sharing unsupported — fall through
-      }
-    }
-
-    // Attempt 2: URL share
-    if (navigator.share) {
-      try {
+      } else if (CAN_SHARE) {
+        // One call: URL share
         await navigator.share({ title: 'London Selfie Cam', text, url: imgUrl });
-        setSharing(false);
-        return;
-      } catch (e) {
-        if (e.name === 'AbortError') { setSharing(false); return; }
-        // unsupported — fall through
+      } else {
+        // Clipboard copy
+        await navigator.clipboard.writeText(`${text}\n${imgUrl}`);
       }
+    } catch (e) {
+      if (e.name !== 'AbortError') console.warn('Share failed:', e);
+    } finally {
+      setSharing(false);
     }
-
-    // Attempt 3: clipboard
-    try {
-      await navigator.clipboard.writeText(`${text}\n${imgUrl}`);
-    } catch { /* silent */ }
-
-    setSharing(false);
   }
 
   async function handleSave() {
@@ -136,6 +128,25 @@ export function SnapResult({ snap, onDone, onShare }) {
         padding: '60px 24px 24px',
       }}
     >
+      <button
+        onClick={onDone}
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          background: 'none',
+          border: 'none',
+          color: 'var(--ink-dim)',
+          fontFamily: 'var(--font-hud)',
+          fontSize: 11,
+          letterSpacing: '0.15em',
+          cursor: 'pointer',
+          padding: '6px 0',
+        }}
+      >
+        ← BACK
+      </button>
+
       <div
         className="hud"
         style={{
