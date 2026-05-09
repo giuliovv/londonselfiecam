@@ -1,0 +1,729 @@
+/* ============ London Selfie Cam — components & screens ============ */
+
+/* ==== App shell — phone-sized, centered ==== */
+.app-shell {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000;
+  overflow: hidden;
+}
+.app-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 50% at 50% 40%, rgba(255, 45, 45, 0.08), transparent 70%),
+    radial-gradient(40% 60% at 80% 80%, rgba(0, 229, 255, 0.05), transparent 70%),
+    #000;
+  pointer-events: none;
+}
+.phone {
+  position: relative;
+  width: min(100vw, 430px);
+  height: min(100dvh, 900px);
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 30px 80px rgba(0, 0, 0, 0.7);
+}
+@media (min-width: 720px) {
+  .phone {
+    border-radius: 38px;
+    box-shadow:
+      0 0 0 8px #1a1a1a,
+      0 0 0 9px #2a2a2a,
+      0 40px 90px rgba(0, 0, 0, 0.85);
+    height: min(880px, calc(100dvh - 48px));
+  }
+  .phone::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 10px;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 28px;
+    background: #000;
+    border-radius: 16px;
+    z-index: 100;
+  }
+}
+
+/* ==== Universal screen overlays ==== */
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, calc(var(--scanline) * 1)) 3px,
+    rgba(0, 0, 0, 0) 4px
+  );
+  z-index: 50;
+  mix-blend-mode: multiply;
+}
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 51;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0.45 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 240px 240px;
+  mix-blend-mode: overlay;
+}
+.crt-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 52;
+  background: radial-gradient(
+    120% 120% at 50% 50%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.65) 100%
+  );
+}
+
+/* ==== HUD elements ==== */
+.hud {
+  font-family: var(--font-hud);
+  letter-spacing: 0.04em;
+}
+.rec-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--rec);
+  box-shadow: 0 0 10px var(--rec);
+  animation: blink 1s steps(2, end) infinite;
+  vertical-align: -1px;
+}
+@keyframes blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.tape-edge {
+  background: repeating-linear-gradient(90deg, var(--bar) 0 12px, #111 12px 18px);
+  height: 6px;
+}
+
+/* ==== Bottom tab nav ==== */
+.tabbar {
+  position: relative;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--chrome);
+  border-top: 1px solid var(--line);
+  padding: 8px 6px calc(env(safe-area-inset-bottom, 0) + 10px);
+  font-family: var(--font-hud);
+}
+.tabbar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 4px;
+  color: var(--ink-dim);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  position: relative;
+}
+.tabbar button.active {
+  color: var(--ink);
+}
+.tabbar button.active::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 2px;
+  background: var(--rec);
+  box-shadow: 0 0 8px var(--rec);
+}
+.tabbar svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tab-snap {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--rec);
+  z-index: 70;
+  box-shadow:
+    0 0 0 4px var(--bg),
+    0 0 20px var(--rec);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-hud);
+  color: var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.tab-snap::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.tab-snap:active {
+  transform: translateX(-50%) scale(0.94);
+}
+
+/* ==== Screens ==== */
+.screen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.screen-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.screen-scroll::-webkit-scrollbar {
+  width: 0;
+}
+
+/* ==== Status bar (fake iOS) ==== */
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 22px 6px;
+  font-family: var(--font-hud);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  position: relative;
+  z-index: 30;
+}
+[data-theme="tfl"] .statusbar {
+  color: var(--ink);
+}
+
+/* ==== Buttons / chips ==== */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  font-family: var(--font-hud);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--hud-bg);
+  color: var(--ink);
+  border-radius: 2px;
+}
+.chip.solid {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.chip.rec {
+  background: var(--rec);
+  color: #fff;
+  border-color: var(--rec);
+}
+
+/* ==== Cam tile ==== */
+.cam-tile {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #050505;
+  cursor: pointer;
+  outline: 1px solid rgba(245, 241, 232, 0.06);
+}
+.cam-tile .cam-feed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #050505;
+}
+.cam-tile .cam-feed--placeholder {
+  background:
+    linear-gradient(180deg, hsl(215, 35%, 18%), hsl(220, 40%, 12%) 60%, #060912 100%);
+}
+.cam-tile .cam-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: var(--font-hud);
+  font-size: 9px;
+  color: var(--ink);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+  letter-spacing: 0.05em;
+}
+.cam-hud .tl {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+}
+.cam-hud .tr {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+}
+.cam-hud .bl {
+  position: absolute;
+  bottom: 4px;
+  left: 5px;
+  max-width: 65%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cam-hud .br {
+  position: absolute;
+  bottom: 4px;
+  right: 5px;
+}
+
+.cam-tile .cam-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    rgba(0, 0, 0, 0.25) 3px,
+    transparent 4px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.7;
+}
+
+.cam-tile[data-state="off"] {
+  background: #1a0707;
+}
+.cam-tile[data-state="off"]::after {
+  content: "NO SIGNAL";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-hud);
+  color: #ff5050;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+  background: repeating-linear-gradient(0deg, #1a0707 0 4px, #2a0a0a 4px 8px);
+}
+
+/* ==== Splash ==== */
+.splash {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--bg);
+  pointer-events: none;
+}
+.splash.fade-out {
+  opacity: 0;
+  transition: opacity 0.6s 0.2s ease;
+}
+
+/* ==== Polaroid / film print ==== */
+.polaroid {
+  background: #f6f1e6;
+  color: #111;
+  padding: 12px 12px 56px;
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(0, 0, 0, 0.1) inset;
+  font-family: var(--font-hud);
+  position: relative;
+}
+.polaroid .frame {
+  aspect-ratio: 1 / 1;
+  background: #050505;
+  position: relative;
+  overflow: hidden;
+}
+.polaroid .frame img,
+.polaroid .frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.polaroid .meta {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 10px;
+  font-size: 12px;
+}
+
+/* ==== Misc ==== */
+.label-pill {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--bar);
+  color: #111;
+  font-family: var(--font-hud);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.divider {
+  height: 1px;
+  background: var(--line);
+  width: 100%;
+}
+.section-title {
+  font-family: var(--font-hud);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.h-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
+.text-mono {
+  font-family: var(--font-mono);
+}
+
+/* glitch */
+@keyframes glitchShift {
+  0%,
+  92%,
+  100% {
+    transform: translate(0, 0);
+    filter: none;
+  }
+  93% {
+    transform: translate(-2px, 0);
+    filter: hue-rotate(20deg) saturate(1.5);
+  }
+  95% {
+    transform: translate(2px, 0);
+    filter: hue-rotate(-20deg);
+  }
+  97% {
+    transform: translate(0, 1px);
+  }
+}
+.glitch {
+  animation: glitchShift 6s infinite;
+}
+
+@keyframes shutter {
+  0% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* timeline rail */
+.rail {
+  position: relative;
+  padding-left: 36px;
+}
+.rail::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--ink) 0 6px,
+    transparent 6px 12px
+  );
+}
+.rail .stop {
+  position: relative;
+  padding: 12px 0;
+}
+.rail .stop::before {
+  content: "";
+  position: absolute;
+  left: -29px;
+  top: 18px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+}
+.rail .stop[data-done="true"]::before {
+  background: var(--acc-1);
+  border-color: var(--acc-1);
+  box-shadow: 0 0 10px var(--acc-1);
+}
+.rail .stop[data-current="true"]::before {
+  background: var(--rec);
+  border-color: var(--rec);
+  box-shadow: 0 0 12px var(--rec);
+  animation: blink 1s steps(2, end) infinite;
+}
+
+/* progress bar */
+.bar {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: rgba(245, 241, 232, 0.12);
+  overflow: hidden;
+}
+.bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--acc-1);
+  box-shadow: 0 0 10px var(--acc-1);
+  transition: width 0.4s ease;
+}
+
+/* utility */
+.row {
+  display: flex;
+  align-items: center;
+}
+.between {
+  justify-content: space-between;
+}
+.gap-2 {
+  gap: 8px;
+}
+.gap-3 {
+  gap: 12px;
+}
+.gap-4 {
+  gap: 16px;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+}
+.px-4 {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.py-2 {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.py-3 {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.mt-1 {
+  margin-top: 4px;
+}
+.mt-2 {
+  margin-top: 8px;
+}
+.mt-3 {
+  margin-top: 12px;
+}
+.mt-4 {
+  margin-top: 16px;
+}
+.mt-6 {
+  margin-top: 24px;
+}
+.mt-8 {
+  margin-top: 32px;
+}
+.mb-2 {
+  margin-bottom: 8px;
+}
+.mb-3 {
+  margin-bottom: 12px;
+}
+.mb-4 {
+  margin-bottom: 16px;
+}
+.opacity-60 {
+  opacity: 0.6;
+}
+.opacity-80 {
+  opacity: 0.8;
+}
+.center {
+  text-align: center;
+}
+.uppercase {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ==== Pin pulse on map ==== */
+@keyframes pinPulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* ==== TFL theme overrides for scenes ==== */
+[data-theme="tfl"] .cam-tile {
+  outline-color: var(--line);
+}
+[data-theme="tfl"] .scanlines,
+[data-theme="tfl"] .grain,
+[data-theme="tfl"] .crt-vignette {
+  display: none;
+}
+[data-theme="tfl"] .tab-snap {
+  background: var(--rec);
+  border-color: #fff;
+  box-shadow:
+    0 0 0 4px var(--bg),
+    0 0 20px rgba(220, 36, 31, 0.5);
+}
+
+/* ==== Tweaks micro panel ==== */
+.tweaks-fab {
+  position: absolute;
+  right: 14px;
+  bottom: 96px;
+  z-index: 65;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  font-family: var(--font-hud);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+}
+.tweaks-popover {
+  position: absolute;
+  right: 14px;
+  bottom: 140px;
+  z-index: 80;
+  width: 248px;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 12px;
+  font-family: var(--font-hud);
+}
+.tweaks-popover h4 {
+  font-family: var(--font-hud);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin: 4px 0 8px;
+  font-weight: 400;
+}
+.tweaks-popover .opts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.tweaks-popover .opt {
+  padding: 8px 4px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-family: var(--font-hud);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.tweaks-popover .opt[data-on="true"] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+/* ==== Live wall grid ==== */
+.live-wall {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 2px;
+}
+@media (min-width: 720px) {
+  .live-wall {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* big variant inside cam viewer */
+.cam-feed--big {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* feed shortcut chip */
+.stream-chip {
+  position: absolute;
+  left: 16px;
+  bottom: 96px;
+  z-index: 65;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 8px 12px;
+  font-family: var(--font-hud);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+}
+
+/* error pill */
+.err {
+  margin: 14px 16px;
+  border: 1px dashed var(--rec);
+  padding: 10px 12px;
+  font-family: var(--font-hud);
+  color: var(--rec);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}

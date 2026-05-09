@@ -1,64 +1,164 @@
-import { useState } from 'react';
-import { useGeolocation } from './hooks/useGeolocation';
+import { useEffect, useMemo, useState } from 'react';
+import './styles.css';
 import { useTflCams } from './hooks/useTflCams';
-import { CamCard, CamThumb } from './components/CamCard';
-import './App.css';
+import { useGeolocation } from './hooks/useGeolocation';
+import { Splash } from './components/Splash';
+import { Statusbar } from './components/Statusbar';
+import { Tabbar } from './components/Tabbar';
+import { Tweaks } from './components/Tweaks';
+import { Landing } from './screens/Landing';
+import { MapScreen } from './screens/MapScreen';
+import { CamViewer } from './screens/CamViewer';
+import { SnapResult } from './screens/SnapResult';
+import { Planner } from './screens/Planner';
+import { Feed } from './screens/Feed';
+import { Me } from './screens/Me';
+
+const DEFAULT_TWEAKS = {
+  theme: 'y2k',
+  hook: 'wall',
+  plannerLayout: 'timeline',
+};
 
 export default function App() {
+  const [tweaks, setTweaks] = useState(DEFAULT_TWEAKS);
+  const setTweak = (k, v) => setTweaks((t) => ({ ...t, [k]: v }));
+
+  const { cams, loading, error, byId, nearestTo } = useTflCams();
   const geo = useGeolocation();
-  const { cams, loading: camsLoading, error: camsError, fetchNearest, getProp } = useTflCams();
-  const [selectedIdx, setSelectedIdx] = useState(0);
-  const [started, setStarted] = useState(false);
 
-  const loading = geo.loading || camsLoading;
-  const error = geo.error || camsError;
+  const [splash, setSplash] = useState(true);
+  const [tab, setTab] = useState('live');
+  const [openCamId, setOpenCamId] = useState(null);
+  const [snap, setSnap] = useState(null);
+  const [activeRoute, setActiveRoute] = useState(null);
 
-  async function handleFind() {
-    setStarted(true);
-    setSelectedIdx(0);
-    try {
-      const loc = await geo.request();
-      await fetchNearest(loc.lat, loc.lon);
-    } catch {
-      // errors stored in hook state
+  // Theme attribute on <html>
+  useEffect(() => {
+    document.documentElement.dataset.theme = tweaks.theme;
+  }, [tweaks.theme]);
+
+  // Splash for ~1.7s, but at least until first cams load
+  useEffect(() => {
+    const min = 1700;
+    const start = Date.now();
+    let cancelled = false;
+    const poll = () => {
+      if (cancelled) return;
+      const elapsed = Date.now() - start;
+      if (elapsed >= min && (!loading || error)) {
+        setSplash(false);
+      } else {
+        setTimeout(poll, 120);
+      }
+    };
+    poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, error]);
+
+  // Sort cams: prefer those nearest the user when geolocation is granted.
+  const sortedCams = useMemo(() => {
+    if (geo.location) {
+      return nearestTo(geo.location.lat, geo.location.lon, cams.length);
     }
+    return cams;
+  }, [cams, geo.location, nearestTo]);
+
+  const openCam = (id) => setOpenCamId(id);
+  const closeCam = () => setOpenCamId(null);
+  const onSnap = (s) => {
+    setSnap(s);
+    setOpenCamId(null);
+  };
+
+  const camForViewer = openCamId
+    ? byId(openCamId) || sortedCams.find((c) => c.id === openCamId) || sortedCams[0]
+    : null;
+
+  // Modal-ish: cam viewer takes over the phone shell
+  if (openCamId) {
+    return (
+      <div className="app-shell">
+        <div className="phone">
+          <Splash show={splash} camCount={cams.length} />
+          <CamViewer cam={camForViewer} onBack={closeCam} onSnap={onSnap} />
+        </div>
+      </div>
+    );
+  }
+  if (snap) {
+    return (
+      <div className="app-shell">
+        <div className="phone">
+          <SnapResult
+            snap={snap}
+            onDone={() => setSnap(null)}
+            onShare={() => setSnap(null)}
+          />
+        </div>
+      </div>
+    );
   }
 
-  const selected = cams[selectedIdx] ?? null;
-  const nearby = cams.slice(1, 6);
-
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>London Selfie Cam</h1>
-        <p className="subtitle">Find the nearest TFL jam cam to you</p>
-      </header>
+    <div className="app-shell">
+      <div className="phone">
+        <Splash show={splash} camCount={cams.length} />
 
-      <button className="find-btn" onClick={handleFind} disabled={loading}>
-        {loading ? 'Locating…' : started ? '📍 Update location' : '📍 Find nearest cam'}
-      </button>
+        <Statusbar />
 
-      {error && <p className="error-msg">{error}</p>}
-
-      {selected && (
-        <>
-          <CamCard cam={selected} getProp={getProp} />
-
-          {nearby.length > 0 && (
-            <section className="nearby-section">
-              <h2 className="nearby-heading">Also nearby</h2>
-              {nearby.map((cam, i) => (
-                <CamThumb
-                  key={cam.id}
-                  cam={cam}
-                  getProp={getProp}
-                  onClick={() => setSelectedIdx(i + 1)}
-                />
-              ))}
-            </section>
+        <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+          {error && (
+            <div className="err">
+              TFL FEED ERROR · {error}
+              <br />
+              (cams may be empty until network recovers)
+            </div>
           )}
-        </>
-      )}
+
+          {tab === 'live' && (
+            <Landing
+              hook={tweaks.hook}
+              cams={sortedCams}
+              onEnter={() => setTab('map')}
+              onPickCam={openCam}
+            />
+          )}
+          {tab === 'map' && <MapScreen cams={sortedCams} onOpenCam={openCam} />}
+          {tab === 'feed' && <Feed cams={sortedCams} onOpenCam={openCam} />}
+          {tab === 'plan' && (
+            <Planner
+              cams={sortedCams}
+              layout={tweaks.plannerLayout}
+              activeRoute={activeRoute}
+              onStartRoute={setActiveRoute}
+              onSnap={onSnap}
+            />
+          )}
+          {tab === 'me' && <Me cams={sortedCams} onOpenCam={openCam} />}
+        </div>
+
+        {/* center floating snap */}
+        <button
+          className="tab-snap"
+          onClick={() => sortedCams[0] && openCam(sortedCams[0].id)}
+        >
+          SNAP
+        </button>
+
+        <Tabbar tab={tab} onChange={setTab} />
+
+        {/* feed shortcut chip on landing */}
+        {tab === 'live' && (
+          <button className="stream-chip" onClick={() => setTab('feed')}>
+            ↗ THE STREAM
+          </button>
+        )}
+
+        <Tweaks tweaks={tweaks} setTweak={setTweak} />
+      </div>
     </div>
   );
 }
