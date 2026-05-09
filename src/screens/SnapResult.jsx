@@ -19,6 +19,46 @@ const FILTERS = {
 
 export function SnapResult({ snap, onDone, onShare }) {
   const [printed, setPrinted] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  async function handleShare() {
+    setSharing(true);
+    const imgUrl = snap.cam.imageUrl
+      ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
+      : null;
+    const text = `Spotted on a TFL jam cam 📸 ${snap.cam.displayName.toUpperCase()} · #LondonSelfieCam`;
+
+    try {
+      if (navigator.share) {
+        // Try to share the actual image file
+        if (imgUrl) {
+          try {
+            const res = await fetch(imgUrl, { mode: 'cors' });
+            const blob = await res.blob();
+            const file = new File([blob], 'londonselfiecam.jpg', { type: blob.type });
+            if (navigator.canShare?.({ files: [file] })) {
+              await navigator.share({ files: [file], title: 'London Selfie Cam', text });
+              onShare?.();
+              return;
+            }
+          } catch {
+            // CORS blocked or canShare false — fall through
+          }
+        }
+        // Fall back to text + page URL
+        await navigator.share({ title: 'London Selfie Cam', text, url: window.location.href });
+        onShare?.();
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(`${text}\n${window.location.href}`);
+        onShare?.();
+      }
+    } catch {
+      // User cancelled or API unavailable — just dismiss
+      onShare?.();
+    } finally {
+      setSharing(false);
+    }
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setPrinted(true), 250);
@@ -186,11 +226,12 @@ export function SnapResult({ snap, onDone, onShare }) {
 
       <div className="row gap-3 mt-6" style={{ width: '100%', maxWidth: 320 }}>
         <button
-          onClick={onShare}
+          onClick={handleShare}
+          disabled={sharing}
           className="chip solid"
           style={{ flex: 1, padding: 14, justifyContent: 'center' }}
         >
-          ↗ SHARE
+          {sharing ? '...' : '↗ SHARE'}
         </button>
         <button
           onClick={onDone}
