@@ -128,6 +128,25 @@ export function SnapResult({ snap, onDone, onShare }) {
         padding: '60px 24px 24px',
       }}
     >
+      <button
+        onClick={onDone}
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          background: 'none',
+          border: 'none',
+          color: 'var(--ink-dim)',
+          fontFamily: 'var(--font-hud)',
+          fontSize: 11,
+          letterSpacing: '0.15em',
+          cursor: 'pointer',
+          padding: '6px 0',
+        }}
+      >
+        ← BACK
+      </button>
+
       <div
         className="hud"
         style={{
