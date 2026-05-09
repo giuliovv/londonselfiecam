@@ -170,7 +170,7 @@ export function CamViewer({ cam, onBack, onSnap, missionStop }) {
       >
         <div
           className="row gap-2"
-          style={{ overflowX: 'auto', paddingBottom: 12 }}
+          style={{ overflowX: 'auto', paddingBottom: 12, justifyContent: 'center' }}
         >
           {Object.keys(FILTERS).map((f) => (
             <button
