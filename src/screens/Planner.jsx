@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { CamTile } from '../components/CamTile';
+import { StopGuide } from '../components/StopGuide';
 import { CamViewer } from './CamViewer';
 import { ROUTES, missionFor } from '../data/london';
 import { resolveRouteCams } from '../hooks/useTflCams';
@@ -325,6 +326,7 @@ function RouteDetail({ route, cams, onBack, onStart }) {
               >
                 ▍ TASK: {missionFor(c.id, i).toUpperCase()}
               </div>
+              <StopGuide cam={c} accent={route.color} />
             </div>
           ))}
         </div>
@@ -502,6 +504,7 @@ function RouteTimeline({ route, cams, onClose, onSnap }) {
                     >
                       Walk: ~9 min from previous stop
                     </div>
+                    <StopGuide cam={c} accent={route.color} defaultOpen />
                   </>
                 )}
 

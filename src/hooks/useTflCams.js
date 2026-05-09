@@ -38,10 +38,11 @@ function normalize(raw, idx) {
     displayName = parts.join(' / ');
   }
   // Short tile id (last 3 digits of TFL id) for HUD overlays.
-  const idMatch = (raw.id || '').match(/(\d+)\.?(\d+)?$/);
+  // TfL ids look like "JamCams_00001.06502" — we want the tail block (502).
+  const idMatch = (raw.id || '').match(/(\d+)$/);
   const shortId =
     'JC' +
-    (idMatch ? (idMatch[1] || '').slice(-3).padStart(3, '0') : String(idx).padStart(3, '0'));
+    (idMatch ? idMatch[1].slice(-3).padStart(3, '0') : String(idx).padStart(3, '0'));
 
   return {
     id: raw.id,
