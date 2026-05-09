@@ -9,6 +9,13 @@ const WEATHERS = [
   '17°C · CLEAR',
   '9°C · MIST',
   '13°C · CLOUDY',
+  '21°C · SUNNY',
+  '8°C · RAINY',
+  '6°C · STORMY',
+  '15°C · BREEZY',
+  '4°C · FOGGY',
+  '19°C · WARM',
+  '12°C · SHOWERS',
 ];
 
 const FILTERS = {
@@ -47,6 +54,8 @@ const PENS = {
   },
 };
 
+const MAX_NOTE_LENGTH = 28;
+
 function formatNoteDate(d) {
   const day = d.getDate();
   const month = d.toLocaleDateString('en-GB', { month: 'short' });
@@ -72,7 +81,9 @@ export function SnapResult({ snap, onDone, onShare }) {
   const d = snap.time instanceof Date ? snap.time : new Date(snap.time);
   const hms = formatTime(d);
   const dateStr = formatDate(d);
-  const weather = WEATHERS[(snap.cam.shortId || 'JC').length % WEATHERS.length];
+  const weather = WEATHERS[Math.abs(snap.frozenAt || +d) % WEATHERS.length];
+  const defaultNote = `London ♥ ${formatNoteDate(d)}`;
+  const [note, setNote] = useState(defaultNote);
   const printNo = String((snap.frozenAt || Date.now()) % 999).padStart(3, '0');
   const frozenSrc = snap.cam.imageUrl
     ? `${snap.cam.imageUrl}?t=${snap.frozenAt || Date.now()}`
@@ -91,7 +102,7 @@ export function SnapResult({ snap, onDone, onShare }) {
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setReady(false);
-    generatePolaroid(snap, { pen }).then((blob) => {
+    generatePolaroid(snap, { pen, note }).then((blob) => {
       if (cancelled) return;
       blobRef.current = blob;
       if (dataUrlRef.current) URL.revokeObjectURL(dataUrlRef.current);
@@ -99,7 +110,7 @@ export function SnapResult({ snap, onDone, onShare }) {
       setReady(true);
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [snap, pen]);
+  }, [snap, pen, note]);
 
   async function handleShare() {
     setSharing(true);
@@ -107,8 +118,7 @@ export function SnapResult({ snap, onDone, onShare }) {
     const camName = (snap.cam.displayName || 'London cam').toUpperCase();
     const camId = snap.cam.shortId ? encodeURIComponent(snap.cam.shortId) : '';
     const appLink = `${SITE_URL}/${camId ? `?cam=${camId}` : ''}`;
-    // Link embedded in text — iOS WhatsApp drops `url` when files are present.
-    const text = `Spotted on a TFL jam cam 📸 ${camName} · #LondonSelfieCam\n${appLink}`;
+    const text = `Spotted on a TFL jam cam 📸 ${camName} · #LondonSelfieCam`;
 
     try {
       if (CAN_SHARE_FILES && blob) {
@@ -117,7 +127,7 @@ export function SnapResult({ snap, onDone, onShare }) {
       } else if (CAN_SHARE) {
         await navigator.share({ title: 'London Selfie Cam', text, url: appLink });
       } else {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(`${text}\n${appLink}`);
       }
     } catch (e) {
       if (e.name !== 'AbortError') console.warn('Share failed:', e);
@@ -301,7 +311,11 @@ export function SnapResult({ snap, onDone, onShare }) {
             {snap.cam.road || snap.cam.view || 'TFL'}
           </span>
         </div>
-        <div
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
+          maxLength={MAX_NOTE_LENGTH}
+          aria-label="Polaroid note"
           style={{
             position: 'absolute',
             left: 0,
@@ -315,12 +329,13 @@ export function SnapResult({ snap, onDone, onShare }) {
             transform: `rotate(${PENS[pen].rotate}deg)`,
             transformOrigin: 'center',
             lineHeight: 1,
-            pointerEvents: 'none',
-            userSelect: 'none',
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            padding: 0,
+            width: '100%',
           }}
-        >
-          London ♥ {formatNoteDate(d)}
-        </div>
+        />
       </div>
 
       <div

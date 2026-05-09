@@ -853,19 +853,17 @@
   object-fit: cover;
 }
 
-/* feed shortcut chip */
+/* feed shortcut chip — sits inline in landing top HUD next to LIVE label */
 .stream-chip {
-  position: absolute;
-  left: 16px;
-  bottom: 96px;
-  z-index: 65;
   background: var(--bg);
   color: var(--ink);
   border: 1px solid var(--ink);
-  padding: 8px 12px;
+  padding: 4px 10px;
   font-family: var(--font-hud);
   font-size: 11px;
   letter-spacing: 0.15em;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 /* ==== StopGuide (digital travel guide panel) ==== */

@@ -111,7 +111,12 @@ export default function App() {
           )}
 
           {tab === 'live' && (
-            <Landing cams={sortedCams} onEnter={() => setTab('map')} onPickCam={openCam} />
+            <Landing
+              cams={sortedCams}
+              onEnter={() => setTab('map')}
+              onPickCam={openCam}
+              onOpenStream={() => setTab('feed')}
+            />
           )}
           {tab === 'map' && <MapScreen cams={sortedCams} onOpenCam={openCam} userLoc={geo.location} />}
           {tab === 'feed' && <Feed cams={sortedCams} onOpenCam={openCam} />}
@@ -134,12 +139,6 @@ export default function App() {
         </button>
 
         <Tabbar tab={tab} onChange={setTab} />
-
-        {tab === 'live' && (
-          <button className="stream-chip" onClick={() => setTab('feed')}>
-            ↗ THE STREAM
-          </button>
-        )}
       </div>
       <DesktopSidekick />
     </div>

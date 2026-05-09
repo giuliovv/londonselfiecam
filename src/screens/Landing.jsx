@@ -3,7 +3,7 @@ import { CamTile } from '../components/CamTile';
 import { Scanlines, Grain, Vignette } from '../components/Overlays';
 import { useTickingTime } from '../hooks/useTickingTime';
 
-export function Landing({ cams, onEnter, onPickCam }) {
+export function Landing({ cams, onEnter, onPickCam, onOpenStream }) {
   const time = useTickingTime();
   const [count, setCount] = useState(412);
   useEffect(() => {
@@ -46,10 +46,25 @@ export function Landing({ cams, onEnter, onPickCam }) {
         }}
       >
         <div className="hud" style={{ pointerEvents: 'auto' }}>
-          <div className="row between" style={{ fontSize: 11, letterSpacing: '0.12em' }}>
+          <div className="row between" style={{ fontSize: 11, letterSpacing: '0.12em', alignItems: 'center' }}>
             <span>
               <span className="rec-dot" /> &nbsp;LIVE · TFL JAM CAM
             </span>
+            {onOpenStream && (
+              <button type="button" className="stream-chip" onClick={onOpenStream}>
+                ↗ THE STREAM
+              </button>
+            )}
+          </div>
+          <div
+            className="row mt-1"
+            style={{
+              fontSize: 10,
+              letterSpacing: '0.15em',
+              color: 'var(--ink-dim)',
+              justifyContent: 'flex-end',
+            }}
+          >
             <span>{time}</span>
           </div>
           <div className="tape-edge" style={{ marginTop: 8 }} />
@@ -67,7 +82,19 @@ export function Landing({ cams, onEnter, onPickCam }) {
           </div>
         </div>
 
-        <div style={{ pointerEvents: 'auto', textAlign: 'left' }}>
+        <div
+          style={{
+            pointerEvents: 'auto',
+            textAlign: 'left',
+            background: 'rgba(0,0,0,0.55)',
+            padding: '14px 16px',
+            border: '1px solid rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
+            alignSelf: 'flex-start',
+            maxWidth: '100%',
+          }}
+        >
           <div
             className="hud"
             style={{ fontSize: 11, letterSpacing: '0.2em', color: 'var(--rec)' }}

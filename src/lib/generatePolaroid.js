@@ -16,6 +16,13 @@ const WEATHERS = [
   '17°C · CLEAR',
   '9°C · MIST',
   '13°C · CLOUDY',
+  '21°C · SUNNY',
+  '8°C · RAINY',
+  '6°C · STORMY',
+  '15°C · BREEZY',
+  '4°C · FOGGY',
+  '19°C · WARM',
+  '12°C · SHOWERS',
 ];
 
 const PENS = {
@@ -119,7 +126,7 @@ export async function generatePolaroid(snap, options = {}) {
   ctx.fillText(label, PAD + 11, PAD + 17, labelW - 8);
 
   // Top-right: weather
-  const weather = WEATHERS[(snap.cam.shortId || 'JC').length % WEATHERS.length];
+  const weather = WEATHERS[Math.abs(snap.frozenAt || Date.now()) % WEATHERS.length];
   const wM = ctx.measureText(weather);
   const wW = wM.width + 14;
   ctx.fillStyle = 'rgba(0,0,0,0.65)';
@@ -161,7 +168,7 @@ export async function generatePolaroid(snap, options = {}) {
     await document.fonts.load(`${pen.weight} ${pen.size}px ${pen.family}`);
   } catch { /* fall through with default font */ }
 
-  const note = `London ♥ ${formatNoteDate(d)}`;
+  const note = options.note || `London ♥ ${formatNoteDate(d)}`;
   ctx.save();
   ctx.fillStyle = pen.color;
   ctx.font = `${pen.weight} ${pen.size}px ${pen.family}`;
