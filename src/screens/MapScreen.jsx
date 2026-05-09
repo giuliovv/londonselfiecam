@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { MapView } from '../components/MapView';
 import { CamTile } from '../components/CamTile';
 
-export function MapScreen({ cams, onOpenCam }) {
+export function MapScreen({ cams, onOpenCam, userLoc }) {
   const [sel, setSel] = useState(null);
   const selCam = cams.find((c) => c.id === sel);
 
   return (
     <div className="screen" style={{ background: 'var(--bg)' }}>
-      <MapView cams={cams.slice(0, 80)} onPick={setSel} pulsing selected={sel} />
+      <MapView cams={cams} onPick={setSel} selected={sel} userLoc={userLoc} />
 
       <div
         style={{

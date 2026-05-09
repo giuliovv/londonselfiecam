@@ -23,6 +23,11 @@ export default function App() {
   const [snap, setSnap] = useState(null);
   const [activeRoute, setActiveRoute] = useState(null);
 
+  // Auto-request geolocation once on mount so cams can sort by proximity
+  useEffect(() => {
+    geo.request().catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Splash for ~1.7s, but at least until first cams load
   useEffect(() => {
     const min = 1700;
@@ -105,7 +110,7 @@ export default function App() {
           {tab === 'live' && (
             <Landing cams={sortedCams} onEnter={() => setTab('map')} onPickCam={openCam} />
           )}
-          {tab === 'map' && <MapScreen cams={sortedCams} onOpenCam={openCam} />}
+          {tab === 'map' && <MapScreen cams={sortedCams} onOpenCam={openCam} userLoc={geo.location} />}
           {tab === 'feed' && <Feed cams={sortedCams} onOpenCam={openCam} />}
           {tab === 'plan' && (
             <Planner
