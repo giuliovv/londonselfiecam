@@ -72,12 +72,17 @@
     position: relative;
     width: 360px;
     max-height: min(880px, calc(100dvh - 48px));
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 14px;
     color: var(--ink);
     font-family: var(--font-body);
     z-index: 10;
+    scrollbar-width: none;
+  }
+  .desktop-sidekick::-webkit-scrollbar {
+    display: none;
   }
   .sidekick-title {
     font-size: 84px;
