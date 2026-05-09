@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { CamTile } from '../components/CamTile';
 import { StopGuide } from '../components/StopGuide';
 import { CamViewer } from './CamViewer';
@@ -372,18 +373,25 @@ function RouteTimeline({ route, cams, onClose, onSnap }) {
   const total = stops.length;
 
   if (openCam !== null) {
-    return (
-      <CamViewer
-        cam={stops[openCam]}
-        onBack={() => setOpenCam(null)}
-        missionStop={{ task: missionFor(stops[openCam].id, openCam) }}
-        onSnap={(s) => {
-          if (openCam === stepIdx) setStepIdx((i) => Math.min(total - 1, i + 1));
-          setOpenCam(null);
-          onSnap?.(s);
-        }}
-      />
+    // Portal CamViewer to the phone container so it covers the Tabbar +
+    // tab-snap button; otherwise we'd render two SNAP buttons. Keeps
+    // RouteTimeline mounted so stepIdx survives across snap/back.
+    const camOverlay = (
+      <div style={{ position: 'absolute', inset: 0, zIndex: 200, background: 'var(--bg)' }}>
+        <CamViewer
+          cam={stops[openCam]}
+          onBack={() => setOpenCam(null)}
+          missionStop={{ task: missionFor(stops[openCam].id, openCam) }}
+          onSnap={(s) => {
+            if (openCam === stepIdx) setStepIdx((i) => Math.min(total - 1, i + 1));
+            setOpenCam(null);
+            onSnap?.(s);
+          }}
+        />
+      </div>
     );
+    const target = typeof document !== 'undefined' ? document.querySelector('.phone') : null;
+    return target ? createPortal(camOverlay, target) : camOverlay;
   }
 
   return (
